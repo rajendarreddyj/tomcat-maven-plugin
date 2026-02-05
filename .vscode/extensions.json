@@ -1,0 +1,18 @@
+{
+  "recommendations": [
+    "vscjava.vscode-java-pack",
+    "vscjava.vscode-maven",
+    "vscjava.vscode-java-debug",
+    "vscjava.vscode-java-test",
+    "vscjava.vscode-java-dependency",
+    "redhat.java",
+    "SonarSource.sonarlint-vscode",
+    "eamodio.gitlens",
+    "bierner.markdown-mermaid",
+    "yzhang.markdown-all-in-one",
+    "davidanson.vscode-markdownlint",
+    "streetsidesoftware.code-spell-checker",
+    "EditorConfig.EditorConfig"
+  ],
+  "unwantedRecommendations": []
+}

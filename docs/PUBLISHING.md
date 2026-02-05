@@ -1,6 +1,6 @@
 # Publishing to Maven Central
 
-This guide explains how to publish the `maven-tomcat-plugin` to Maven Central via Sonatype OSSRH.
+This guide explains how to publish the `tomcat-maven-plugin` to Maven Central via Sonatype OSSRH.
 
 ## Prerequisites
 
@@ -130,7 +130,7 @@ Follow [Semantic Versioning](https://semver.org/):
 After successful publication:
 
 1. **Verify on Maven Central**:
-   - Search for the artifact at [search.maven.org](https://search.maven.org/search?q=g:io.github.rajendarreddyj%20AND%20a:maven-tomcat-plugin)
+   - Search for the artifact at [search.maven.org](https://search.maven.org/search?q=g:io.github.rajendarreddyj%20AND%20a:tomcat-maven-plugin)
    - Note: It may take up to 4 hours to appear in search
 
 2. **Update to next SNAPSHOT**:
@@ -192,7 +192,7 @@ After publishing, users can add the plugin to their project:
     <plugins>
         <plugin>
             <groupId>io.github.rajendarreddyj</groupId>
-            <artifactId>maven-tomcat-plugin</artifactId>
+            <artifactId>tomcat-maven-plugin</artifactId>
             <version>1.0.0</version>
         </plugin>
     </plugins>
@@ -202,5 +202,5 @@ After publishing, users can add the plugin to their project:
 Or use the plugin directly:
 
 ```bash
-mvn io.github.rajendarreddyj:maven-tomcat-plugin:1.0.0:run
+mvn io.github.rajendarreddyj:tomcat-maven-plugin:1.0.0:run
 ```

@@ -1,7 +1,7 @@
-# Maven Tomcat Plugin
+# Tomcat Maven Plugin
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.rajendarreddyj/maven-tomcat-plugin.svg)](https://central.sonatype.com/artifact/io.github.rajendarreddyj/maven-tomcat-plugin)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.rajendarreddyj/tomcat-maven-plugin.svg)](https://central.sonatype.com/artifact/io.github.rajendarreddyj/tomcat-maven-plugin)
 [![Java](https://img.shields.io/badge/Java-21%2B-brightgreen.svg)](https://www.oracle.com/java/technologies/downloads/)
 
 A Maven plugin for deploying and managing web applications on Apache Tomcat 10.1.x and 11.x.
@@ -34,7 +34,7 @@ Add the plugin to your project's `pom.xml`:
     <plugins>
         <plugin>
             <groupId>io.github.rajendarreddyj</groupId>
-            <artifactId>maven-tomcat-plugin</artifactId>
+            <artifactId>tomcat-maven-plugin</artifactId>
             <version>1.0.0-SNAPSHOT</version>
             <configuration>
                 <tomcatVersion>10.1.52</tomcatVersion>
@@ -95,7 +95,7 @@ mvn tomcat:deploy
 ```xml
 <plugin>
     <groupId>io.github.rajendarreddyj</groupId>
-    <artifactId>maven-tomcat-plugin</artifactId>
+    <artifactId>tomcat-maven-plugin</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <configuration>
         <!-- Tomcat Version & Location -->
@@ -103,11 +103,11 @@ mvn tomcat:deploy
         <catalinaHome>/path/to/tomcat</catalinaHome>
         <catalinaBase>/path/to/instance</catalinaBase>
         <tomcatCacheDir>${user.home}/.m2/tomcat-cache</tomcatCacheDir>
-        
+
         <!-- Server Configuration -->
         <httpPort>8080</httpPort>
         <httpHost>localhost</httpHost>
-        
+
         <!-- JVM Configuration -->
         <javaHome>${java.home}</javaHome>
         <vmOptions>
@@ -117,25 +117,25 @@ mvn tomcat:deploy
         <environmentVariables>
             <JAVA_OPTS>-Dfile.encoding=UTF-8</JAVA_OPTS>
         </environmentVariables>
-        
+
         <!-- Deployment Configuration -->
         <contextPath>/myapp</contextPath>
         <warSourceDirectory>${project.build.directory}/${project.build.finalName}</warSourceDirectory>
         <deploymentOutputName>myapp</deploymentOutputName>
-        
+
         <!-- Auto-publish -->
         <autopublishEnabled>true</autopublishEnabled>
         <autopublishInactivityLimit>30</autopublishInactivityLimit>
-        
+
         <!-- Timeouts -->
         <startupTimeout>120000</startupTimeout>
         <shutdownTimeout>30000</shutdownTimeout>
-        
+
         <!-- Classpath -->
         <classpathAdditions>
             <classpathAddition>/path/to/extra.jar</classpathAddition>
         </classpathAdditions>
-        
+
         <!-- Skip execution -->
         <skip>false</skip>
     </configuration>
@@ -249,8 +249,8 @@ If Tomcat download fails:
 ## Building from Source
 
 ```bash
-git clone https://github.com/rajendarreddyj/maven-tomcat-plugin.git
-cd maven-tomcat-plugin
+git clone https://github.com/rajendarreddyj/tomcat-maven-plugin.git
+cd tomcat-maven-plugin
 mvn clean install
 ```
 

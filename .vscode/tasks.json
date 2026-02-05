@@ -1,0 +1,116 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Maven: Clean",
+      "type": "shell",
+      "command": "mvn clean",
+      "group": "build",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Maven: Compile",
+      "type": "shell",
+      "command": "mvn compile",
+      "group": "build",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Maven: Clean Install",
+      "type": "shell",
+      "command": "mvn clean install",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Maven: Clean Install (Skip Tests)",
+      "type": "shell",
+      "command": "mvn clean install -DskipTests",
+      "group": "build",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Maven: Test",
+      "type": "shell",
+      "command": "mvn test",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Maven: Verify (Unit + Integration Tests)",
+      "type": "shell",
+      "command": "mvn verify",
+      "group": "test",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Maven: Package",
+      "type": "shell",
+      "command": "mvn package",
+      "group": "build",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Maven: Display Dependency Updates",
+      "type": "shell",
+      "command": "mvn versions:display-dependency-updates",
+      "group": "none",
+      "problemMatcher": []
+    },
+    {
+      "label": "Maven: Display Plugin Updates",
+      "type": "shell",
+      "command": "mvn versions:display-plugin-updates",
+      "group": "none",
+      "problemMatcher": []
+    },
+    {
+      "label": "Maven: Dependency Tree",
+      "type": "shell",
+      "command": "mvn dependency:tree",
+      "group": "none",
+      "problemMatcher": []
+    },
+    {
+      "label": "Maven: Effective POM",
+      "type": "shell",
+      "command": "mvn help:effective-pom",
+      "group": "none",
+      "problemMatcher": []
+    },
+    {
+      "label": "Maven: Plugin Help",
+      "type": "shell",
+      "command": "mvn help:describe -Dplugin=io.github.rajendarreddyj:tomcat-maven-plugin -Ddetail",
+      "group": "none",
+      "problemMatcher": []
+    },
+    {
+      "label": "Maven: Generate Plugin Descriptor",
+      "type": "shell",
+      "command": "mvn plugin:descriptor",
+      "group": "build",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Maven: JaCoCo Report",
+      "type": "shell",
+      "command": "mvn test jacoco:report",
+      "group": "test",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Maven: Release Build",
+      "type": "shell",
+      "command": "mvn clean verify -Prelease",
+      "group": "build",
+      "problemMatcher": "$msCompile"
+    }
+  ]
+}

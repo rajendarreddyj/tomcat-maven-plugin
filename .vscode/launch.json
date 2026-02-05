@@ -1,0 +1,47 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Debug Current Test",
+            "request": "launch",
+            "mainClass": "",
+            "projectName": "tomcat-maven-plugin"
+        },
+        {
+            "type": "java",
+            "name": "Debug RunMojo",
+            "request": "launch",
+            "mainClass": "io.github.rajendarreddyj.tomcat.RunMojo",
+            "projectName": "tomcat-maven-plugin",
+            "args": "",
+            "vmArgs": "-Dmaven.home=${env:MAVEN_HOME}"
+        },
+        {
+            "type": "java",
+            "name": "Debug StartMojo",
+            "request": "launch",
+            "mainClass": "io.github.rajendarreddyj.tomcat.StartMojo",
+            "projectName": "tomcat-maven-plugin",
+            "args": "",
+            "vmArgs": "-Dmaven.home=${env:MAVEN_HOME}"
+        },
+        {
+            "type": "java",
+            "name": "Debug Maven Plugin (Attach)",
+            "request": "attach",
+            "hostName": "localhost",
+            "port": 8000,
+            "projectName": "tomcat-maven-plugin"
+        },
+        {
+            "type": "java",
+            "name": "Debug All Tests",
+            "request": "launch",
+            "mainClass": "",
+            "projectName": "tomcat-maven-plugin",
+            "vmArgs": "-ea"
+        }
+    ],
+    "compounds": []
+}

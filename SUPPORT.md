@@ -3,7 +3,7 @@
 ## Getting Help
 - Usage and configuration: see `README.md`
 - Publishing guidance: see `docs/PUBLISHING.md`
-- Questions and feature requests: open an Issue at https://github.com/rajendarreddyj/maven-tomcat-plugin/issues
+- Questions and feature requests: open an Issue at https://github.com/rajendarreddyj/tomcat-maven-plugin/issues
 
 ## Bug Reports
 Please include:

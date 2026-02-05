@@ -1,0 +1,122 @@
+{
+    // ==================== Java Configuration ====================
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.format.enabled": true,
+    "java.format.settings.profile": "GoogleStyle",
+    "java.saveActions.organizeImports": true,
+    "java.import.gradle.enabled": false,
+    "java.import.maven.enabled": true,
+    "java.autobuild.enabled": true,
+    "java.project.sourcePaths": [
+        "src/main/java",
+        "src/test/java"
+    ],
+    "java.project.outputPath": "target/classes",
+    "java.project.referencedLibraries": [
+        "lib/**/*.jar"
+    ],
+    "java.codeGeneration.hashCodeEquals.useJava7Objects": true,
+    "java.codeGeneration.useBlocks": true,
+    "java.codeGeneration.toString.template": "${object.className} [${member.name()}=${member.value}, ${otherMembers}]",
+    // ==================== Maven Configuration ====================
+    "maven.executable.path": "",
+    "maven.terminal.useJavaHome": true,
+    "maven.excludedFolders": [
+        "**/.*",
+        "**/node_modules",
+        "**/target"
+    ],
+    // ==================== Editor Configuration ====================
+    "editor.formatOnSave": true,
+    "editor.formatOnPaste": false,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit"
+    },
+    "editor.rulers": [
+        120
+    ],
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    // ==================== File Associations ====================
+    "files.associations": {
+        "pom.xml": "xml",
+        "*.xml": "xml",
+        "*.properties": "properties"
+    },
+    "files.exclude": {
+        "**/.classpath": true,
+        "**/.project": true,
+        "**/.settings": true,
+        "**/.factorypath": true,
+        "**/target": false
+    },
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+    "files.trimFinalNewlines": true,
+    // ==================== Search Configuration ====================
+    "search.exclude": {
+        "**/target": true,
+        "**/.git": true,
+        "**/node_modules": true,
+        "**/*.class": true,
+        "**/*.jar": true
+    },
+    // ==================== Test Configuration ====================
+    "java.test.config": {
+        "name": "tomcat-maven-plugin",
+        "workingDirectory": "${workspaceFolder}",
+        "vmArgs": [
+            "-ea"
+        ],
+        "env": {}
+    },
+    "java.test.defaultConfig": "tomcat-maven-plugin",
+    // ==================== XML Configuration ====================
+    "xml.format.enabled": true,
+    "xml.format.splitAttributes": false,
+    "xml.validation.enabled": true,
+    // ==================== Markdown Configuration ====================
+    "markdown.preview.breaks": true,
+    "[markdown]": {
+        "editor.wordWrap": "on",
+        "editor.quickSuggestions": {
+            "other": true,
+            "comments": false,
+            "strings": false
+        }
+    },
+    // ==================== Git Configuration ====================
+    "git.enableSmartCommit": true,
+    "git.autofetch": true,
+    // ==================== Spell Checker ====================
+    "cSpell.words": [
+        "autopublish",
+        "catalina",
+        "classpath",
+        "CATALINA",
+        "helpmojo",
+        "jacoco",
+        "jakarta",
+        "javax",
+        "mojo",
+        "mojos",
+        "rajendarreddyj",
+        "redeploy",
+        "servlet",
+        "sonatype",
+        "surefire",
+        "tomcat",
+        "webapp",
+        "webapps"
+    ],
+    // ==================== Copilot Configuration ====================
+    "github.copilot.enable": {
+        "*": true,
+        "plaintext": false,
+        "markdown": true,
+        "java": true,
+        "xml": true
+    }
+}
