@@ -14,9 +14,13 @@ import java.util.HexFormat;
 
 /**
  * Validates file integrity using SHA-512 checksums.
+ *
+ * @author rajendarreddyj
+ * @since 1.0.0
  */
 public class ChecksumValidator {
 
+    /** The algorithm used for checksum calculation. */
     private static final String SHA_512 = "SHA-512";
 
     /**
@@ -41,14 +45,19 @@ public class ChecksumValidator {
     /**
      * Fetches checksum from remote URL.
      *
+     * <p>
+     * Reads the first line from the checksum file, which typically contains
+     * the hash followed optionally by the filename.
+     * </p>
+     *
      * @param checksumUrl URL to the checksum file
-     * @return the checksum string
-     * @throws IOException if fetch fails
+     * @return the checksum string from the remote file
+     * @throws IOException if fetch fails or URL is invalid
      */
     private String fetchChecksum(String checksumUrl) throws IOException {
         try (InputStream is = URI.create(checksumUrl).toURL().openStream();
-             BufferedReader reader = new BufferedReader(
-                     new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(is, StandardCharsets.UTF_8))) {
             return reader.readLine();
         }
     }

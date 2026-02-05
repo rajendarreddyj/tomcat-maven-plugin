@@ -9,27 +9,51 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 /**
- * Generates a custom CATALINA_BASE directory with modified server.xml for port configuration.
- * This allows running Tomcat with custom ports without modifying the original installation.
+ * Generates a custom CATALINA_BASE directory with modified server.xml for port
+ * configuration.
+ * This allows running Tomcat with custom ports without modifying the original
+ * installation.
+ *
+ * @author rajendarreddyj
+ * @since 1.0.0
  */
 public final class CatalinaBaseGenerator {
 
+    /**
+     * Pattern to match HTTP connector port attribute.
+     * Captures the port="8080" portion of HTTP connectors for replacement.
+     */
     private static final Pattern CONNECTOR_PORT_PATTERN = Pattern.compile(
             "(<Connector[^>]*port=\")8080(\"[^>]*protocol=\"HTTP)",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
+    /**
+     * Pattern to match HTTP connector for adding address attribute.
+     * Captures the connector element to allow insertion of address attribute.
+     */
     private static final Pattern CONNECTOR_ADDRESS_PATTERN = Pattern.compile(
             "(<Connector[^>]*protocol=\"HTTP[^\"]*\"[^>]*)(/?>)",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
+    /**
+     * Pattern to match Server element shutdown port.
+     * Captures the port="8005" for disabling shutdown port.
+     */
     private static final Pattern SERVER_SHUTDOWN_PORT_PATTERN = Pattern.compile(
             "(<Server[^>]*port=\")8005(\")",
             Pattern.CASE_INSENSITIVE);
 
+    /**
+     * Pattern to match AJP connector port.
+     * Used to identify AJP connectors for commenting out.
+     */
     private static final Pattern AJP_PORT_PATTERN = Pattern.compile(
             "(<Connector[^>]*port=\")8009(\"[^>]*protocol=\"AJP)",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
+    /**
+     * Private constructor to prevent instantiation of utility class.
+     */
     private CatalinaBaseGenerator() {
         // Utility class
     }
@@ -37,7 +61,8 @@ public final class CatalinaBaseGenerator {
     /**
      * Generates a CATALINA_BASE directory with customized configuration.
      *
-     * @param catalinaHome the CATALINA_HOME directory (original Tomcat installation)
+     * @param catalinaHome the CATALINA_HOME directory (original Tomcat
+     *                     installation)
      * @param catalinaBase the target CATALINA_BASE directory to create
      * @param httpPort     the HTTP port to configure
      * @param httpHost     the HTTP host/address to bind to

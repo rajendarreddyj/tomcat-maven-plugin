@@ -1,12 +1,15 @@
 package io.github.rajendarreddyj.tomcat.lifecycle;
 
-import io.github.rajendarreddyj.tomcat.config.ServerConfiguration;
-import org.apache.maven.plugin.logging.Log;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -15,19 +18,50 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import org.apache.maven.plugin.logging.Log;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
+import io.github.rajendarreddyj.tomcat.config.ServerConfiguration;
+
+/**
+ * Unit tests for {@link TomcatLauncher}.
+ *
+ * <p>
+ * Tests the Tomcat process lifecycle management including
+ * startup, shutdown, environment configuration, and process handling.
+ *
+ * @author rajendarreddyj
+ * @see TomcatLauncher
+ */
 class TomcatLauncherTest {
 
+    /**
+     * Temporary directory for test artifacts, cleaned up automatically after each
+     * test.
+     */
     @TempDir
     Path tempDir;
 
+    /** Mock Maven logger for testing. */
     @Mock
     private Log log;
 
+    /** Path to the mock Tomcat installation directory. */
     private Path catalinaHome;
 
+    /**
+     * Sets up the test environment before each test.
+     *
+     * <p>
+     * Creates a mock Tomcat bin directory with catalina scripts
+     * for cross-platform testing.
+     *
+     * @throws IOException if setup fails
+     */
     @BeforeEach
     void setUp() throws IOException {
         MockitoAnnotations.openMocks(this);
@@ -44,6 +78,9 @@ class TomcatLauncherTest {
         shScript.toFile().setExecutable(true);
     }
 
+    /**
+     * Verifies that constructor creates a valid instance.
+     */
     @Test
     void constructorCreatesInstance() {
         ServerConfiguration config = createConfig(8080);
@@ -52,6 +89,9 @@ class TomcatLauncherTest {
         assertNotNull(launcher);
     }
 
+    /**
+     * Verifies that getProcess returns null before start is called.
+     */
     @Test
     void getProcessReturnsNullBeforeStart() {
         ServerConfiguration config = createConfig(8080);
@@ -60,6 +100,11 @@ class TomcatLauncherTest {
         assertNull(launcher.getProcess());
     }
 
+    /**
+     * Verifies that stop handles null process gracefully.
+     *
+     * @throws Exception if the test fails
+     */
     @Test
     void stopHandlesNullProcess() throws Exception {
         ServerConfiguration config = createConfig(8080);
@@ -69,6 +114,11 @@ class TomcatLauncherTest {
         assertDoesNotThrow(() -> launcher.stop());
     }
 
+    /**
+     * Verifies that start throws exception for missing catalina script.
+     *
+     * @throws IOException if file operations fail
+     */
     @Test
     void startThrowsExceptionForMissingScript() throws IOException {
         // Remove the catalina script
@@ -87,6 +137,11 @@ class TomcatLauncherTest {
         assertThrows(IOException.class, launcher::start);
     }
 
+    /**
+     * Verifies that start logs startup information.
+     *
+     * @throws IOException if file operations fail
+     */
     @Test
     void startLogsStartupInfo() throws IOException {
         ServerConfiguration config = createConfig(9090);
@@ -98,12 +153,14 @@ class TomcatLauncherTest {
             // Expected - may fail for various reasons in test env
         }
 
-        verify(log, atLeastOnce()).info(argThat((CharSequence msg) -> 
-                msg.toString().contains("CATALINA_HOME") || 
+        verify(log, atLeastOnce()).info(argThat((CharSequence msg) -> msg.toString().contains("CATALINA_HOME") ||
                 msg.toString().contains("Starting") ||
                 msg.toString().contains("Waiting")));
     }
 
+    /**
+     * Verifies that server configuration works with custom port.
+     */
     @Test
     void serverConfigurationWithCustomPort() {
         ServerConfiguration config = ServerConfiguration.builder()
@@ -116,6 +173,9 @@ class TomcatLauncherTest {
         assertEquals(9999, config.getHttpPort());
     }
 
+    /**
+     * Verifies that server configuration works with VM options.
+     */
     @Test
     void serverConfigurationWithVmOptions() {
         ServerConfiguration config = ServerConfiguration.builder()
@@ -128,6 +188,9 @@ class TomcatLauncherTest {
         assertEquals(2, config.getVmOptions().size());
     }
 
+    /**
+     * Verifies that server configuration works with environment variables.
+     */
     @Test
     void serverConfigurationWithEnvironmentVariables() {
         ServerConfiguration config = ServerConfiguration.builder()
@@ -140,6 +203,9 @@ class TomcatLauncherTest {
         assertEquals("-Dfile.encoding=UTF-8", config.getEnvironmentVariables().get("JAVA_OPTS"));
     }
 
+    /**
+     * Verifies that server configuration works with custom Java home.
+     */
     @Test
     void serverConfigurationWithJavaHome() {
         Path javaHome = tempDir.resolve("java");
@@ -153,6 +219,9 @@ class TomcatLauncherTest {
         assertEquals(javaHome, config.getJavaHome());
     }
 
+    /**
+     * Verifies that server configuration works with classpath additions.
+     */
     @Test
     void serverConfigurationWithClasspathAdditions() {
         ServerConfiguration config = ServerConfiguration.builder()
@@ -165,6 +234,9 @@ class TomcatLauncherTest {
         assertEquals(1, config.getClasspathAdditions().size());
     }
 
+    /**
+     * Verifies that server configuration works with custom timeouts.
+     */
     @Test
     void serverConfigurationWithCustomTimeouts() {
         ServerConfiguration config = ServerConfiguration.builder()
@@ -179,6 +251,9 @@ class TomcatLauncherTest {
         assertEquals(15000, config.getShutdownTimeout());
     }
 
+    /**
+     * Verifies that server configuration works with custom CATALINA_BASE.
+     */
     @Test
     void serverConfigurationWithCatalinaBase() {
         Path catalinaBase = tempDir.resolve("tomcat-base");
@@ -192,6 +267,9 @@ class TomcatLauncherTest {
         assertEquals(catalinaBase, config.getCatalinaBase());
     }
 
+    /**
+     * Verifies that server configuration works with custom HTTP host.
+     */
     @Test
     void serverConfigurationWithCustomHost() {
         ServerConfiguration config = ServerConfiguration.builder()
@@ -204,6 +282,11 @@ class TomcatLauncherTest {
         assertEquals("0.0.0.0", config.getHttpHost());
     }
 
+    /**
+     * Verifies that stop handles already stopped process gracefully.
+     *
+     * @throws Exception if the test fails
+     */
     @Test
     void stopHandlesAlreadyStoppedProcess() throws Exception {
         ServerConfiguration config = createConfig(8080);
@@ -216,6 +299,9 @@ class TomcatLauncherTest {
         // Should not throw
     }
 
+    /**
+     * Verifies that OS detection correctly identifies the current platform.
+     */
     @Test
     void isWindowsDetectsCorrectOS() {
         String osName = System.getProperty("os.name").toLowerCase();
@@ -224,12 +310,18 @@ class TomcatLauncherTest {
         ServerConfiguration config = createConfig(8080);
         TomcatLauncher launcher = new TomcatLauncher(config, log);
 
-        // We can't directly test private method, but we can verify the script resolution
+        // We can't directly test private method, but we can verify the script
+        // resolution
         // would work for the current OS by checking the script exists
         String scriptName = expectedWindows ? "catalina.bat" : "catalina.sh";
         assertTrue(Files.exists(catalinaHome.resolve("bin").resolve(scriptName)));
     }
 
+    /**
+     * Verifies that start times out when server is not ready.
+     *
+     * @throws IOException if file operations fail
+     */
     @Test
     void startTimesOutWhenServerNotReady() throws IOException {
         // Use a short timeout and unavailable port
@@ -247,6 +339,11 @@ class TomcatLauncherTest {
         assertThrows(IOException.class, launcher::start);
     }
 
+    /**
+     * Verifies that start succeeds when server is already ready.
+     *
+     * @throws Exception if the test fails
+     */
     @Test
     void startSucceedsWhenServerIsReady() throws Exception {
         // Use ServerSocket to simulate a running server
@@ -267,14 +364,18 @@ class TomcatLauncherTest {
                 assertDoesNotThrow(launcher::start);
 
                 // Verify success log message
-                verify(log).info(argThat((CharSequence msg) ->
-                        msg.toString().contains("started successfully")));
+                verify(log).info(argThat((CharSequence msg) -> msg.toString().contains("started successfully")));
             } finally {
                 launcher.stop();
             }
         }
     }
 
+    /**
+     * Verifies that stop handles an alive process correctly.
+     *
+     * @throws Exception if the test fails
+     */
     @Test
     void stopWithAliveProcess() throws Exception {
         ServerConfiguration config = createConfig(8080);
@@ -297,6 +398,11 @@ class TomcatLauncherTest {
         assertDoesNotThrow(launcher2::stop);
     }
 
+    /**
+     * Verifies that environment is configured with VM options.
+     *
+     * @throws IOException if file operations fail
+     */
     @Test
     void configureEnvironmentWithVmOptionsAndExistingOpts() throws IOException {
         ServerConfiguration config = ServerConfiguration.builder()
@@ -314,10 +420,14 @@ class TomcatLauncherTest {
             // Expected - timeout because Tomcat isn't really running
         }
 
-        verify(log).info(argThat((CharSequence msg) ->
-                msg.toString().contains("CATALINA_HOME")));
+        verify(log).info(argThat((CharSequence msg) -> msg.toString().contains("CATALINA_HOME")));
     }
 
+    /**
+     * Verifies that environment is configured with classpath additions.
+     *
+     * @throws IOException if file operations fail
+     */
     @Test
     void configureEnvironmentWithClasspathAdditions() throws IOException {
         ServerConfiguration config = ServerConfiguration.builder()
@@ -339,6 +449,11 @@ class TomcatLauncherTest {
         verify(log, atLeastOnce()).info(any(CharSequence.class));
     }
 
+    /**
+     * Verifies that stop works via script when no process is running.
+     *
+     * @throws Exception if the test fails
+     */
     @Test
     void stopViaScriptWhenNoProcess() throws Exception {
         ServerConfiguration config = ServerConfiguration.builder()
@@ -353,6 +468,11 @@ class TomcatLauncherTest {
         assertDoesNotThrow(launcher::stop);
     }
 
+    /**
+     * Verifies that start logs configuration details.
+     *
+     * @throws Exception if the test fails
+     */
     @Test
     void startLogsConfigurationDetails() throws Exception {
         Path catalinaBase = tempDir.resolve("tomcat-base");
@@ -377,14 +497,16 @@ class TomcatLauncherTest {
         }
 
         // Verify all config details are logged
-        verify(log).info(argThat((CharSequence msg) ->
-                msg.toString().contains("CATALINA_HOME")));
-        verify(log).info(argThat((CharSequence msg) ->
-                msg.toString().contains("CATALINA_BASE")));
-        verify(log).info(argThat((CharSequence msg) ->
-                msg.toString().contains("HTTP Port")));
+        verify(log).info(argThat((CharSequence msg) -> msg.toString().contains("CATALINA_HOME")));
+        verify(log).info(argThat((CharSequence msg) -> msg.toString().contains("CATALINA_BASE")));
+        verify(log).info(argThat((CharSequence msg) -> msg.toString().contains("HTTP Port")));
     }
 
+    /**
+     * Verifies that getProcess returns a process after start.
+     *
+     * @throws Exception if the test fails
+     */
     @Test
     void getProcessReturnsProcessAfterStart() throws Exception {
         // Bind to a port to simulate running server
@@ -411,12 +533,24 @@ class TomcatLauncherTest {
         }
     }
 
+    /**
+     * Finds an available port for testing.
+     *
+     * @return an available port number
+     * @throws IOException if port selection fails
+     */
     private int findAvailablePort() throws IOException {
         try (ServerSocket socket = new ServerSocket(0)) {
             return socket.getLocalPort();
         }
     }
 
+    /**
+     * Creates a ServerConfiguration for testing.
+     *
+     * @param port the HTTP port to use
+     * @return a configured ServerConfiguration instance
+     */
     private ServerConfiguration createConfig(int port) {
         return ServerConfiguration.builder()
                 .catalinaHome(catalinaHome)

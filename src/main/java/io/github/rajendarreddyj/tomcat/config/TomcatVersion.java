@@ -1,7 +1,11 @@
 package io.github.rajendarreddyj.tomcat.config;
 
 /**
- * Represents supported Tomcat versions with their download URLs and Java requirements.
+ * Represents supported Tomcat versions with their download URLs and Java
+ * requirements.
+ *
+ * @author rajendarreddyj
+ * @since 1.0.0
  */
 public enum TomcatVersion {
     /**
@@ -14,13 +18,28 @@ public enum TomcatVersion {
      */
     TOMCAT_11("11", 17, "https://dlcdn.apache.org/tomcat/tomcat-11/");
 
+    /** Base URL for archived Tomcat 10.x distributions. */
     private static final String ARCHIVE_BASE_URL_10 = "https://archive.apache.org/dist/tomcat/tomcat-10/";
+
+    /** Base URL for archived Tomcat 11.x distributions. */
     private static final String ARCHIVE_BASE_URL_11 = "https://archive.apache.org/dist/tomcat/tomcat-11/";
 
+    /** The major.minor version string (e.g., "10.1" or "11"). */
     private final String majorMinor;
+
+    /** The minimum Java version required for this Tomcat version. */
     private final int minimumJava;
+
+    /** The base URL for downloading this Tomcat version. */
     private final String downloadBaseUrl;
 
+    /**
+     * Constructs a TomcatVersion enum constant.
+     *
+     * @param majorMinor      the major.minor version string
+     * @param minimumJava     the minimum required Java version
+     * @param downloadBaseUrl the base URL for downloads
+     */
     TomcatVersion(String majorMinor, int minimumJava, String downloadBaseUrl) {
         this.majorMinor = majorMinor;
         this.minimumJava = minimumJava;

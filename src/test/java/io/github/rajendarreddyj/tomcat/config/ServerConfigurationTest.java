@@ -1,15 +1,31 @@
 package io.github.rajendarreddyj.tomcat.config;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
+/**
+ * Unit tests for {@link ServerConfiguration}.
+ *
+ * <p>
+ * Tests the server configuration builder including required fields,
+ * default values, and immutability of collections.
+ *
+ * @author rajendarreddyj
+ * @see ServerConfiguration
+ */
 class ServerConfigurationTest {
 
+    /**
+     * Verifies that builder correctly sets required fields and applies defaults.
+     */
     @Test
     void builderRequiredFields() {
         ServerConfiguration config = ServerConfiguration.builder()
@@ -21,6 +37,9 @@ class ServerConfigurationTest {
         assertEquals(Path.of("/tomcat"), config.getCatalinaBase());
     }
 
+    /**
+     * Verifies that builder correctly sets all configuration fields.
+     */
     @Test
     void builderAllFields() {
         ServerConfiguration config = ServerConfiguration.builder()
@@ -48,6 +67,9 @@ class ServerConfigurationTest {
         assertEquals(List.of("/extra.jar"), config.getClasspathAdditions());
     }
 
+    /**
+     * Verifies that builder applies correct default values when not explicitly set.
+     */
     @Test
     void builderDefaultValues() {
         ServerConfiguration config = ServerConfiguration.builder()
@@ -64,13 +86,18 @@ class ServerConfigurationTest {
         assertTrue(config.getClasspathAdditions().isEmpty());
     }
 
+    /**
+     * Verifies that builder throws NullPointerException when catalinaHome is not
+     * set.
+     */
     @Test
     void catalinaHomeIsRequired() {
-        assertThrows(NullPointerException.class, () ->
-                ServerConfiguration.builder().build()
-        );
+        assertThrows(NullPointerException.class, () -> ServerConfiguration.builder().build());
     }
 
+    /**
+     * Verifies that VM options list is immutable after configuration is built.
+     */
     @Test
     void immutabilityVmOptions() {
         ServerConfiguration config = ServerConfiguration.builder()
@@ -78,11 +105,13 @@ class ServerConfigurationTest {
                 .vmOptions(List.of("-Xmx1g"))
                 .build();
 
-        assertThrows(UnsupportedOperationException.class, () ->
-                config.getVmOptions().add("-Xms256m")
-        );
+        assertThrows(UnsupportedOperationException.class, () -> config.getVmOptions().add("-Xms256m"));
     }
 
+    /**
+     * Verifies that environment variables map is immutable after configuration is
+     * built.
+     */
     @Test
     void immutabilityEnvironmentVariables() {
         ServerConfiguration config = ServerConfiguration.builder()
@@ -90,11 +119,13 @@ class ServerConfigurationTest {
                 .environmentVariables(Map.of("KEY", "VALUE"))
                 .build();
 
-        assertThrows(UnsupportedOperationException.class, () ->
-                config.getEnvironmentVariables().put("NEW", "VALUE")
-        );
+        assertThrows(UnsupportedOperationException.class, () -> config.getEnvironmentVariables().put("NEW", "VALUE"));
     }
 
+    /**
+     * Verifies that classpath additions list is immutable after configuration is
+     * built.
+     */
     @Test
     void immutabilityClasspathAdditions() {
         ServerConfiguration config = ServerConfiguration.builder()
@@ -102,11 +133,12 @@ class ServerConfigurationTest {
                 .classpathAdditions(List.of("/lib.jar"))
                 .build();
 
-        assertThrows(UnsupportedOperationException.class, () ->
-                config.getClasspathAdditions().add("/other.jar")
-        );
+        assertThrows(UnsupportedOperationException.class, () -> config.getClasspathAdditions().add("/other.jar"));
     }
 
+    /**
+     * Verifies that toString() contains all relevant field information.
+     */
     @Test
     void toStringContainsAllFields() {
         ServerConfiguration config = ServerConfiguration.builder()

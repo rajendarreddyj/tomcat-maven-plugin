@@ -1,8 +1,5 @@
 package io.github.rajendarreddyj.tomcat.deploy;
 
-import io.github.rajendarreddyj.tomcat.config.DeployableConfiguration;
-import org.apache.maven.plugin.logging.Log;
-
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -13,11 +10,19 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Comparator;
 import java.util.stream.Stream;
 
+import org.apache.maven.plugin.logging.Log;
+
+import io.github.rajendarreddyj.tomcat.config.DeployableConfiguration;
+
 /**
  * Deploys exploded WAR directories to Tomcat webapps.
+ *
+ * @author rajendarreddyj
+ * @since 1.0.0
  */
 public class ExplodedWarDeployer {
 
+    /** The Maven logger for status and debug messages. */
     private final Log log;
 
     /**
@@ -105,6 +110,15 @@ public class ExplodedWarDeployer {
 
     /**
      * Copies a directory tree recursively.
+     *
+     * <p>
+     * Uses NIO FileVisitor to walk the source directory tree and copy
+     * all files and subdirectories to the target location.
+     * </p>
+     *
+     * @param source the source directory to copy from
+     * @param target the target directory to copy to
+     * @throws IOException if file copy operations fail
      */
     private void copyDirectory(Path source, Path target) throws IOException {
         Files.walkFileTree(source, new SimpleFileVisitor<>() {
@@ -127,7 +141,15 @@ public class ExplodedWarDeployer {
     }
 
     /**
-     * Deletes a directory and all its contents.
+     * Deletes a directory and all its contents recursively.
+     *
+     * <p>
+     * Walks the directory tree in reverse order (deepest files first)
+     * to ensure directories are empty before deletion.
+     * </p>
+     *
+     * @param directory the directory to delete
+     * @throws IOException if deletion fails
      */
     private void deleteDirectory(Path directory) throws IOException {
         if (Files.exists(directory)) {

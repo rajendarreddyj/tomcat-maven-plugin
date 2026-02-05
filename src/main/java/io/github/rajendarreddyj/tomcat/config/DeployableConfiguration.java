@@ -6,17 +6,38 @@ import java.util.Objects;
 /**
  * Immutable configuration for deployment settings.
  * Use the {@link Builder} to construct instances.
+ *
+ * @author rajendarreddyj
+ * @since 1.0.0
  */
 public final class DeployableConfiguration {
 
+    /** The module name (typically the Maven artifact ID). */
     private final String moduleName;
+
+    /** The source path of the web application to deploy. */
     private final Path sourcePath;
+
+    /** The context path for the deployed application. */
     private final String contextPath;
+
+    /** The deployment directory (webapps folder). */
     private final Path deployDir;
+
+    /** Whether auto-publish is enabled for hot deployment. */
     private final boolean autopublishEnabled;
+
+    /** Seconds of inactivity before auto-publish triggers. */
     private final int autopublishInactivityLimit;
+
+    /** The output directory name for deployment. */
     private final String deploymentOutputName;
 
+    /**
+     * Constructs a DeployableConfiguration from builder values.
+     *
+     * @param builder the builder containing configuration values
+     */
     private DeployableConfiguration(Builder builder) {
         this.moduleName = Objects.requireNonNull(builder.moduleName, "moduleName is required");
         this.sourcePath = Objects.requireNonNull(builder.sourcePath, "sourcePath is required");
@@ -115,8 +136,10 @@ public final class DeployableConfiguration {
 
     /**
      * Derives the target directory name for deployment.
-     * If deploymentOutputName is set, uses that. Otherwise, derives from context path.
-     * ROOT context ("/") maps to "ROOT", other contexts map to their path without leading slash.
+     * If deploymentOutputName is set, uses that. Otherwise, derives from context
+     * path.
+     * ROOT context ("/") maps to "ROOT", other contexts map to their path without
+     * leading slash.
      *
      * @return the target directory name
      */
@@ -144,14 +167,31 @@ public final class DeployableConfiguration {
      * Builder for DeployableConfiguration.
      */
     public static final class Builder {
+
+        /** The module name (typically the Maven artifact ID). */
         private String moduleName;
+
+        /** The source path of the web application to deploy. */
         private Path sourcePath;
+
+        /** The context path for the deployed application. */
         private String contextPath;
+
+        /** The deployment directory (webapps folder). */
         private Path deployDir;
+
+        /** Whether auto-publish is enabled for hot deployment. */
         private boolean autopublishEnabled;
+
+        /** Seconds of inactivity before auto-publish triggers. */
         private int autopublishInactivityLimit;
+
+        /** The output directory name for deployment. */
         private String deploymentOutputName;
 
+        /**
+         * Private constructor for Builder.
+         */
         private Builder() {
         }
 

@@ -1,7 +1,6 @@
 package io.github.rajendarreddyj.tomcat.config;
 
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,20 +9,47 @@ import java.util.Objects;
 /**
  * Immutable configuration for Tomcat server settings.
  * Use the {@link Builder} to construct instances.
+ *
+ * @author rajendarreddyj
+ * @since 1.0.0
  */
 public final class ServerConfiguration {
 
+    /** The Tomcat installation directory (CATALINA_HOME). */
     private final Path catalinaHome;
+
+    /** The Tomcat instance directory (CATALINA_BASE). */
     private final Path catalinaBase;
+
+    /** The HTTP host/address to bind to. */
     private final String httpHost;
+
+    /** The HTTP port number. */
     private final int httpPort;
+
+    /** The Java installation directory (JAVA_HOME). */
     private final Path javaHome;
+
+    /** JVM options for the Tomcat process. */
     private final List<String> vmOptions;
+
+    /** Environment variables for the Tomcat process. */
     private final Map<String, String> environmentVariables;
+
+    /** Timeout in milliseconds for Tomcat startup. */
     private final long startupTimeout;
+
+    /** Timeout in milliseconds for Tomcat shutdown. */
     private final long shutdownTimeout;
+
+    /** Additional classpath entries for Tomcat. */
     private final List<String> classpathAdditions;
 
+    /**
+     * Constructs a ServerConfiguration from builder values.
+     *
+     * @param builder the builder containing configuration values
+     */
     private ServerConfiguration(Builder builder) {
         this.catalinaHome = Objects.requireNonNull(builder.catalinaHome, "catalinaHome is required");
         this.catalinaBase = builder.catalinaBase != null ? builder.catalinaBase : builder.catalinaHome;
@@ -146,17 +172,40 @@ public final class ServerConfiguration {
      * Builder for ServerConfiguration.
      */
     public static final class Builder {
+
+        /** The Tomcat installation directory (CATALINA_HOME). */
         private Path catalinaHome;
+
+        /** The Tomcat instance directory (CATALINA_BASE). */
         private Path catalinaBase;
+
+        /** The HTTP host/address to bind to. */
         private String httpHost;
+
+        /** The HTTP port number. */
         private int httpPort;
+
+        /** The Java installation directory (JAVA_HOME). */
         private Path javaHome;
+
+        /** JVM options for the Tomcat process. */
         private List<String> vmOptions;
+
+        /** Environment variables for the Tomcat process. */
         private Map<String, String> environmentVariables;
+
+        /** Timeout in milliseconds for Tomcat startup. */
         private long startupTimeout;
+
+        /** Timeout in milliseconds for Tomcat shutdown. */
         private long shutdownTimeout;
+
+        /** Additional classpath entries for Tomcat. */
         private List<String> classpathAdditions;
 
+        /**
+         * Private constructor for Builder.
+         */
         private Builder() {
         }
 

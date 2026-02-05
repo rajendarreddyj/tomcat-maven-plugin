@@ -1,8 +1,5 @@
 package io.github.rajendarreddyj.tomcat.lifecycle;
 
-import io.github.rajendarreddyj.tomcat.config.ServerConfiguration;
-import org.apache.maven.plugin.logging.Log;
-
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.file.Files;
@@ -12,13 +9,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.maven.plugin.logging.Log;
+
+import io.github.rajendarreddyj.tomcat.config.ServerConfiguration;
+
 /**
  * Manages Tomcat process lifecycle.
+ *
+ * @author rajendarreddyj
+ * @since 1.0.0
  */
 public class TomcatLauncher {
 
+    /** The server configuration containing Tomcat paths and settings. */
     private final ServerConfiguration config;
+
+    /** The Maven logger for status and debug messages. */
     private final Log log;
+
+    /** The underlying Tomcat process, null until started. */
     private Process tomcatProcess;
 
     /**
@@ -96,7 +105,17 @@ public class TomcatLauncher {
     }
 
     /**
-     * Starts the Tomcat process with the given command.
+     * Starts the Tomcat process with the specified command.
+     *
+     * <p>
+     * Creates a new process using the catalina script with the given command
+     * (e.g., "run", "start"). Configures the process environment and inherits
+     * I/O streams from the parent process.
+     * </p>
+     *
+     * @param command the catalina command to execute ("run", "start", "stop")
+     * @return the started Process instance
+     * @throws IOException if the process cannot be started or the catalina script is not found
      */
     private Process startProcess(String command) throws IOException {
         Path catalinaScript = resolveCatalinaScript();
@@ -128,6 +147,15 @@ public class TomcatLauncher {
 
     /**
      * Stops Tomcat using the catalina script.
+     *
+     * <p>
+     * Invokes the catalina script with the "stop" command. This method is used
+     * as a fallback when the Tomcat process reference is not available or has
+     * already terminated. Respects the configured shutdown timeout.
+     * </p>
+     *
+     * @throws IOException          if the catalina script cannot be executed
+     * @throws InterruptedException if the stop command wait is interrupted
      */
     private void stopViaScript() throws IOException, InterruptedException {
         Path catalinaScript = resolveCatalinaScript();
@@ -158,7 +186,15 @@ public class TomcatLauncher {
     }
 
     /**
-     * Resolves the path to the catalina script.
+     * Resolves the path to the catalina script based on the current operating system.
+     *
+     * <p>
+     * Returns the path to catalina.bat on Windows or catalina.sh on Unix-like
+     * systems. Verifies that the script exists before returning.
+     * </p>
+     *
+     * @return the path to the catalina script
+     * @throws IOException if the catalina script is not found at the expected location
      */
     private Path resolveCatalinaScript() throws IOException {
         String scriptName = isWindows() ? "catalina.bat" : "catalina.sh";
@@ -172,7 +208,21 @@ public class TomcatLauncher {
     }
 
     /**
-     * Configures the process environment variables.
+     * Configures the process environment variables for the Tomcat process.
+     *
+     * <p>
+     * Sets up the following environment variables:
+     * </p>
+     * <ul>
+     * <li>CATALINA_HOME - the Tomcat installation directory</li>
+     * <li>CATALINA_BASE - the Tomcat instance directory</li>
+     * <li>JAVA_HOME - the Java installation directory (if configured)</li>
+     * <li>CATALINA_OPTS - JVM options from configuration</li>
+     * <li>CLASSPATH - additional classpath entries</li>
+     * <li>Custom environment variables from configuration</li>
+     * </ul>
+     *
+     * @param env the environment map to configure
      */
     private void configureEnvironment(Map<String, String> env) {
         // Core Tomcat environment
@@ -204,7 +254,15 @@ public class TomcatLauncher {
     }
 
     /**
-     * Waits for Tomcat to start and become ready.
+     * Waits for Tomcat to start and become ready to accept connections.
+     *
+     * <p>
+     * Polls the configured HTTP port at one-second intervals until the server
+     * accepts connections or the startup timeout is exceeded. Logs progress
+     * and success/failure status.
+     * </p>
+     *
+     * @throws IOException if the startup timeout is exceeded or the wait is interrupted
      */
     private void waitForStartup() throws IOException {
         log.info("Waiting for Tomcat to start (timeout: " + config.getStartupTimeout() + "ms)...");
@@ -230,6 +288,13 @@ public class TomcatLauncher {
 
     /**
      * Checks if the server is ready by attempting to connect to the HTTP port.
+     *
+     * <p>
+     * Opens a TCP connection to the configured HTTP host and port. A successful
+     * connection indicates the server is ready to accept requests.
+     * </p>
+     *
+     * @return {@code true} if the server accepts connections, {@code false} otherwise
      */
     private boolean isServerReady() {
         try (Socket socket = new Socket(config.getHttpHost(), config.getHttpPort())) {
@@ -240,7 +305,14 @@ public class TomcatLauncher {
     }
 
     /**
-     * Checks if the current OS is Windows.
+     * Checks if the current operating system is Windows.
+     *
+     * <p>
+     * Used to determine which catalina script to execute (catalina.bat vs catalina.sh)
+     * and how to construct the process command line.
+     * </p>
+     *
+     * @return {@code true} if running on Windows, {@code false} otherwise
      */
     private boolean isWindows() {
         return System.getProperty("os.name").toLowerCase().contains("windows");

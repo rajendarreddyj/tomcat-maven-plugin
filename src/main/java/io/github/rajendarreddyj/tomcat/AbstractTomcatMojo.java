@@ -1,15 +1,5 @@
 package io.github.rajendarreddyj.tomcat;
 
-import io.github.rajendarreddyj.tomcat.config.CatalinaBaseGenerator;
-import io.github.rajendarreddyj.tomcat.config.DeployableConfiguration;
-import io.github.rajendarreddyj.tomcat.config.ServerConfiguration;
-import io.github.rajendarreddyj.tomcat.config.TomcatVersion;
-import io.github.rajendarreddyj.tomcat.download.TomcatDownloader;
-import org.apache.maven.plugin.AbstractMojo;
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.project.MavenProject;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,9 +13,23 @@ import java.util.Properties;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import org.apache.maven.plugin.AbstractMojo;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProject;
+
+import io.github.rajendarreddyj.tomcat.config.CatalinaBaseGenerator;
+import io.github.rajendarreddyj.tomcat.config.DeployableConfiguration;
+import io.github.rajendarreddyj.tomcat.config.ServerConfiguration;
+import io.github.rajendarreddyj.tomcat.config.TomcatVersion;
+import io.github.rajendarreddyj.tomcat.download.TomcatDownloader;
+
 /**
  * Abstract base class for all Tomcat plugin Mojos.
  * Provides common configuration parameters and utility methods.
+ *
+ * @author rajendarreddyj
+ * @since 1.0.0
  */
 public abstract class AbstractTomcatMojo extends AbstractMojo {
 
@@ -41,7 +45,8 @@ public abstract class AbstractTomcatMojo extends AbstractMojo {
 
     /**
      * Path to an existing Tomcat installation (CATALINA_HOME).
-     * If not specified or doesn't exist, Tomcat will be downloaded based on tomcatVersion.
+     * If not specified or doesn't exist, Tomcat will be downloaded based on
+     * tomcatVersion.
      */
     @Parameter(property = "tomcat.catalina.home")
     protected File catalinaHome;
@@ -127,8 +132,7 @@ public abstract class AbstractTomcatMojo extends AbstractMojo {
     /**
      * Directory containing the exploded WAR to deploy.
      */
-    @Parameter(property = "tomcat.war.directory",
-            defaultValue = "${project.build.directory}/${project.build.finalName}")
+    @Parameter(property = "tomcat.war.directory", defaultValue = "${project.build.directory}/${project.build.finalName}")
     protected File warSourceDirectory;
 
     /**
@@ -264,10 +268,12 @@ public abstract class AbstractTomcatMojo extends AbstractMojo {
 
     /**
      * Detects the installed Tomcat version from an existing installation.
-     * Reads version from lib/catalina.jar!/org/apache/catalina/util/ServerInfo.properties
+     * Reads version from
+     * lib/catalina.jar!/org/apache/catalina/util/ServerInfo.properties
      *
      * @param tomcatPath path to the Tomcat installation
-     * @return The detected version string (e.g., "10.1.52") or null if detection fails
+     * @return The detected version string (e.g., "10.1.52") or null if detection
+     *         fails
      */
     protected String detectInstalledVersion(Path tomcatPath) {
         Path catalinaJar = tomcatPath.resolve("lib/catalina.jar");

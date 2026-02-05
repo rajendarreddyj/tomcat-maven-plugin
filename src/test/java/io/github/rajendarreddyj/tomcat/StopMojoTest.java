@@ -1,5 +1,17 @@
 package io.github.rajendarreddyj.tomcat;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
 import org.junit.jupiter.api.BeforeEach;
@@ -8,24 +20,44 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.lang.reflect.Field;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
+/**
+ * Unit tests for {@link StopMojo}.
+ *
+ * <p>
+ * Tests the Tomcat stop goal including process termination,
+ * PID file handling, and script-based shutdown scenarios.
+ *
+ * @author rajendarreddyj
+ * @see StopMojo
+ */
 class StopMojoTest {
 
+    /**
+     * Temporary directory for test artifacts, cleaned up automatically after each
+     * test.
+     */
     @TempDir
     Path tempDir;
 
+    /** Mock Maven project for testing. */
     @Mock
     private MavenProject project;
 
+    /** The StopMojo instance under test. */
     private StopMojo mojo;
+
+    /** Path to the mock Tomcat installation directory. */
     private Path catalinaHome;
 
+    /**
+     * Sets up the test environment before each test.
+     *
+     * <p>
+     * Creates a mock Tomcat structure and configures the Mojo
+     * with default test values.
+     *
+     * @throws Exception if setup fails
+     */
     @BeforeEach
     void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
@@ -52,6 +84,11 @@ class StopMojoTest {
         setField(mojo, "skip", false);
     }
 
+    /**
+     * Verifies that execution throws when Tomcat installation is invalid.
+     *
+     * @throws Exception if the test fails
+     */
     @Test
     void executeThrowsForInvalidTomcat() throws Exception {
         Path invalidHome = tempDir.resolve("invalid");
@@ -61,6 +98,11 @@ class StopMojoTest {
         assertThrows(MojoExecutionException.class, () -> mojo.execute());
     }
 
+    /**
+     * Verifies that execution works with a custom CATALINA_BASE.
+     *
+     * @throws Exception if the test fails
+     */
     @Test
     void executeWithCatalinaBase() throws Exception {
         // catalinaBase set to a valid directory
@@ -78,6 +120,14 @@ class StopMojoTest {
         }
     }
 
+    /**
+     * Verifies that execution stops a Tomcat process using the PID file.
+     *
+     * <p>
+     * Creates a PID file with a non-existent process ID to test graceful handling.
+     *
+     * @throws Exception if the test fails
+     */
     @Test
     void executeStopsProcessWithPidFile() throws Exception {
         // Create a PID file with the current process ID
@@ -98,6 +148,11 @@ class StopMojoTest {
         assertFalse(Files.exists(pidFile));
     }
 
+    /**
+     * Verifies that execution stops Tomcat via script when no PID file exists.
+     *
+     * @throws Exception if the test fails
+     */
     @Test
     void executeStopsViaScriptWhenNoPidFile() throws Exception {
         // Create catalinaBase without PID file
@@ -115,6 +170,11 @@ class StopMojoTest {
         }
     }
 
+    /**
+     * Verifies that execution throws when PID file contains invalid format.
+     *
+     * @throws Exception if the test fails
+     */
     @Test
     void executeHandlesInvalidPidFormat() throws Exception {
         Path catalinaBase = tempDir.resolve("tomcat-base-bad-pid");
@@ -131,6 +191,11 @@ class StopMojoTest {
         assertThrows(MojoExecutionException.class, () -> mojo.execute());
     }
 
+    /**
+     * Verifies that execution succeeds with the default HTTP port 8080.
+     *
+     * @throws Exception if the test fails
+     */
     @Test
     void executeWithDefaultHttpPort() throws Exception {
         Path catalinaBase = tempDir.resolve("tomcat-base-default-port");
@@ -148,6 +213,11 @@ class StopMojoTest {
         assertDoesNotThrow(() -> mojo.execute());
     }
 
+    /**
+     * Verifies that execution handles an already stopped Tomcat process gracefully.
+     *
+     * @throws Exception if the test fails
+     */
     @Test
     void executeHandlesAlreadyStoppedProcess() throws Exception {
         Path catalinaBase = tempDir.resolve("tomcat-base-stopped");
@@ -164,6 +234,12 @@ class StopMojoTest {
         assertDoesNotThrow(() -> mojo.execute());
     }
 
+    /**
+     * Verifies that OS detection returns the expected value for the current
+     * platform.
+     *
+     * @throws Exception if the test fails
+     */
     @Test
     void isWindowsReturnsExpectedValue() throws Exception {
         // Test OS detection through behavior
@@ -175,6 +251,12 @@ class StopMojoTest {
         assertTrue(Files.exists(catalinaHome.resolve("bin").resolve(scriptName)));
     }
 
+    /**
+     * Creates a mock Tomcat directory structure for testing.
+     *
+     * @param home the path to create the Tomcat structure in
+     * @throws Exception if directory creation fails
+     */
     private void createTomcatStructure(Path home) throws Exception {
         Files.createDirectories(home.resolve("bin"));
         Files.createDirectories(home.resolve("lib"));
@@ -191,12 +273,28 @@ class StopMojoTest {
         shScript.toFile().setExecutable(true);
     }
 
+    /**
+     * Sets a field value on the target object using reflection.
+     *
+     * @param target    the object to modify
+     * @param fieldName the name of the field to set
+     * @param value     the value to set
+     * @throws Exception if reflection fails
+     */
     private void setField(Object target, String fieldName, Object value) throws Exception {
         Field field = findField(target.getClass(), fieldName);
         field.setAccessible(true);
         field.set(target, value);
     }
 
+    /**
+     * Finds a field by name in the class hierarchy.
+     *
+     * @param clazz     the class to search
+     * @param fieldName the name of the field to find
+     * @return the Field object
+     * @throws NoSuchFieldException if the field is not found
+     */
     private Field findField(Class<?> clazz, String fieldName) throws NoSuchFieldException {
         while (clazz != null) {
             try {

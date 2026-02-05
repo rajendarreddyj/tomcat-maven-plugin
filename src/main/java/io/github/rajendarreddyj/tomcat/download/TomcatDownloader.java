@@ -1,8 +1,5 @@
 package io.github.rajendarreddyj.tomcat.download;
 
-import io.github.rajendarreddyj.tomcat.config.TomcatVersion;
-import org.apache.maven.plugin.logging.Log;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -15,13 +12,25 @@ import java.time.Duration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import org.apache.maven.plugin.logging.Log;
+
+import io.github.rajendarreddyj.tomcat.config.TomcatVersion;
+
 /**
  * Downloads and extracts Apache Tomcat distributions.
+ *
+ * @author rajendarreddyj
+ * @since 1.0.0
  */
 public class TomcatDownloader {
 
+    /** Timeout duration for download operations. */
     private static final Duration DOWNLOAD_TIMEOUT = Duration.ofMinutes(10);
+
+    /** Validator for verifying downloaded file checksums. */
     private final ChecksumValidator checksumValidator;
+
+    /** HTTP client for downloading Tomcat distributions. */
     private final HttpClient httpClient;
 
     /**
@@ -36,7 +45,8 @@ public class TomcatDownloader {
     }
 
     /**
-     * Downloads Tomcat if not cached, then extracts and returns the installation path.
+     * Downloads Tomcat if not cached, then extracts and returns the installation
+     * path.
      *
      * @param version  Full Tomcat version (e.g., "10.1.52")
      * @param cacheDir Directory to cache downloads (e.g., ~/.m2/tomcat-cache)
@@ -78,9 +88,20 @@ public class TomcatDownloader {
 
     /**
      * Attempts to download from primary URL with fallback to archive.
+     *
+     * <p>
+     * First tries the primary Apache CDN URL. If that fails or checksum
+     * validation fails, falls back to the Apache archive URL.
+     * </p>
+     *
+     * @param tomcatVersion the Tomcat version enum
+     * @param version       the full version string (e.g., "10.1.52")
+     * @param targetPath    the path to save the downloaded file
+     * @param log           the Maven logger
+     * @throws IOException if both download attempts fail
      */
     private void downloadWithFallback(TomcatVersion tomcatVersion, String version,
-                                      Path targetPath, Log log) throws IOException {
+            Path targetPath, Log log) throws IOException {
         String primaryUrl = tomcatVersion.getDownloadUrl(version);
         String archiveUrl = tomcatVersion.getArchiveDownloadUrl(version);
 
@@ -107,6 +128,10 @@ public class TomcatDownloader {
 
     /**
      * Downloads a file from the given URL.
+     *
+     * @param url        the URL to download from
+     * @param targetPath the path to save the downloaded file
+     * @throws IOException if the download fails or returns non-200 status
      */
     private void downloadFile(String url, Path targetPath) throws IOException {
         try {
@@ -131,9 +156,15 @@ public class TomcatDownloader {
 
     /**
      * Validates the checksum of a downloaded file.
+     *
+     * @param file          the file to validate
+     * @param tomcatVersion the Tomcat version enum for checksum URL resolution
+     * @param version       the full version string
+     * @param log           the Maven logger
+     * @return true if checksum is valid or cannot be verified, false if mismatch
      */
     private boolean validateChecksum(Path file, TomcatVersion tomcatVersion,
-                                     String version, Log log) {
+            String version, Log log) {
         try {
             String checksumUrl = tomcatVersion.getChecksumUrl(version);
             boolean valid = checksumValidator.validate(file, checksumUrl);
@@ -149,6 +180,16 @@ public class TomcatDownloader {
 
     /**
      * Extracts a zip file to the target directory.
+     *
+     * <p>
+     * Includes protection against zip slip attacks by validating that
+     * extracted paths remain within the target directory.
+     * </p>
+     *
+     * @param zipFile   the zip file to extract
+     * @param targetDir the directory to extract to
+     * @param log       the Maven logger
+     * @throws IOException if extraction fails or zip slip attack detected
      */
     private void extract(Path zipFile, Path targetDir, Log log) throws IOException {
         try (ZipInputStream zis = new ZipInputStream(Files.newInputStream(zipFile))) {
@@ -177,6 +218,16 @@ public class TomcatDownloader {
 
     /**
      * Sets executable permissions on shell scripts in the bin directory.
+     *
+     * <p>
+     * On Unix systems, Tomcat shell scripts need executable permission.
+     * This method finds all .sh files in the bin directory and sets them
+     * executable.
+     * </p>
+     *
+     * @param tomcatDir the Tomcat parent directory containing the extracted
+     *                  installation
+     * @param log       the Maven logger
      */
     private void setExecutablePermissions(Path tomcatDir, Log log) {
         try {
@@ -203,6 +254,13 @@ public class TomcatDownloader {
 
     /**
      * Checks if a directory contains a valid Tomcat installation.
+     *
+     * <p>
+     * Validates that the required bin directory and catalina.jar exist.
+     * </p>
+     *
+     * @param dir the directory to check
+     * @return true if the directory appears to be a valid Tomcat installation
      */
     private boolean isValidTomcatDir(Path dir) {
         return Files.exists(dir.resolve("bin")) &&

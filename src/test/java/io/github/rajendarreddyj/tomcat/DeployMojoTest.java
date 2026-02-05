@@ -1,5 +1,15 @@
 package io.github.rajendarreddyj.tomcat;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
 import org.junit.jupiter.api.BeforeEach;
@@ -8,25 +18,47 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.lang.reflect.Field;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
+/**
+ * Unit tests for {@link DeployMojo}.
+ *
+ * <p>
+ * Tests the webapp deployment goal including file copying,
+ * context path handling, and error scenarios.
+ *
+ * @author rajendarreddyj
+ * @see DeployMojo
+ */
 class DeployMojoTest {
 
+    /**
+     * Temporary directory for test artifacts, cleaned up automatically after each
+     * test.
+     */
     @TempDir
     Path tempDir;
 
+    /** Mock Maven project for testing. */
     @Mock
     private MavenProject project;
 
+    /** The DeployMojo instance under test. */
     private DeployMojo mojo;
+
+    /** Path to the mock Tomcat installation directory. */
     private Path catalinaHome;
+
+    /** Path to the mock WAR source directory. */
     private Path warDir;
 
+    /**
+     * Sets up the test environment before each test.
+     *
+     * <p>
+     * Creates a mock Tomcat structure, WAR directory, and configures the Mojo
+     * with default test values.
+     *
+     * @throws Exception if setup fails
+     */
     @BeforeEach
     void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
@@ -60,6 +92,11 @@ class DeployMojoTest {
         setField(mojo, "autopublishEnabled", false);
     }
 
+    /**
+     * Verifies that execution is skipped when the skip flag is true.
+     *
+     * @throws Exception if the test fails
+     */
     @Test
     void executeSkipsWhenSkipIsTrue() throws Exception {
         setField(mojo, "skip", true);
@@ -67,6 +104,11 @@ class DeployMojoTest {
         assertDoesNotThrow(() -> mojo.execute());
     }
 
+    /**
+     * Verifies that execution throws when Tomcat installation is invalid.
+     *
+     * @throws Exception if the test fails
+     */
     @Test
     void executeThrowsForInvalidTomcat() throws Exception {
         Path invalidHome = tempDir.resolve("invalid");
@@ -76,6 +118,11 @@ class DeployMojoTest {
         assertThrows(MojoExecutionException.class, () -> mojo.execute());
     }
 
+    /**
+     * Verifies that execution throws when WAR directory is missing.
+     *
+     * @throws Exception if the test fails
+     */
     @Test
     void executeThrowsForMissingWarDir() throws Exception {
         setField(mojo, "warSourceDirectory", tempDir.resolve("nonexistent").toFile());
@@ -83,12 +130,22 @@ class DeployMojoTest {
         assertThrows(MojoExecutionException.class, () -> mojo.execute());
     }
 
+    /**
+     * Verifies that Java version validation passes with skip flag enabled.
+     *
+     * @throws Exception if the test fails
+     */
     @Test
     void executeValidatesJavaVersion() throws Exception {
         setField(mojo, "skip", true);
         assertDoesNotThrow(() -> mojo.execute());
     }
 
+    /**
+     * Verifies that deployment executes successfully with valid configuration.
+     *
+     * @throws Exception if the test fails
+     */
     @Test
     void executeDeploysWhenValid() throws Exception {
         // Setup valid catalinaBase
@@ -108,6 +165,11 @@ class DeployMojoTest {
         }
     }
 
+    /**
+     * Verifies that deployment works with the root context path.
+     *
+     * @throws Exception if the test fails
+     */
     @Test
     void executeDeploysToRootContext() throws Exception {
         setField(mojo, "contextPath", "/");
@@ -126,6 +188,12 @@ class DeployMojoTest {
         }
     }
 
+    /**
+     * Creates a mock Tomcat directory structure for testing.
+     *
+     * @param home the path to create the Tomcat structure in
+     * @throws Exception if directory creation fails
+     */
     private void createTomcatStructure(Path home) throws Exception {
         Files.createDirectories(home.resolve("bin"));
         Files.createDirectories(home.resolve("lib"));
@@ -134,17 +202,34 @@ class DeployMojoTest {
         Files.writeString(home.resolve("conf").resolve("server.xml"), "<Server/>");
 
         String scriptName = System.getProperty("os.name").toLowerCase().contains("windows")
-                ? "catalina.bat" : "catalina.sh";
+                ? "catalina.bat"
+                : "catalina.sh";
         Path script = home.resolve("bin").resolve(scriptName);
         Files.writeString(script, "echo test");
     }
 
+    /**
+     * Sets a field value on the target object using reflection.
+     *
+     * @param target    the object to modify
+     * @param fieldName the name of the field to set
+     * @param value     the value to set
+     * @throws Exception if reflection fails
+     */
     private void setField(Object target, String fieldName, Object value) throws Exception {
         Field field = findField(target.getClass(), fieldName);
         field.setAccessible(true);
         field.set(target, value);
     }
 
+    /**
+     * Finds a field by name in the class hierarchy.
+     *
+     * @param clazz     the class to search
+     * @param fieldName the name of the field to find
+     * @return the Field object
+     * @throws NoSuchFieldException if the field is not found
+     */
     private Field findField(Class<?> clazz, String fieldName) throws NoSuchFieldException {
         while (clazz != null) {
             try {
