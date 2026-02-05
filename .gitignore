@@ -1,0 +1,39 @@
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+
+# Eclipse
+.classpath
+.project
+.settings/
+# If you use the m2e (Maven for Eclipse) plugin, you might also ignore
+# some files it generates, though many are handled above.
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+
+# Class files
+*.class
+
+# Package Files
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+
+# Log files
+*.log
+logs/
+
+# Operating System Files
+.DS_Store # Mac
+Thumbs.db # Windows
