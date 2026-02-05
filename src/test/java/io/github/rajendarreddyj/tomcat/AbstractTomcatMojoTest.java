@@ -1,17 +1,18 @@
 package io.github.rajendarreddyj.tomcat;
 
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.project.MavenProject;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,8 +22,13 @@ import java.util.Properties;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.project.MavenProject;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 class AbstractTomcatMojoTest {
 
@@ -149,8 +155,9 @@ class AbstractTomcatMojoTest {
 
     @Test
     void validatePortAvailableThrowsForUsedPort() throws Exception {
-        // Use a port that's in use
-        try (ServerSocket socket = new ServerSocket(0)) {
+        // Use a port that's in use - bind to localhost explicitly to match
+        // validatePortAvailable() check
+        try (ServerSocket socket = new ServerSocket(0, 1, InetAddress.getByName("localhost"))) {
             int usedPort = socket.getLocalPort();
             setField(mojo, "httpPort", usedPort);
             setField(mojo, "httpHost", "localhost");
@@ -393,7 +400,8 @@ class AbstractTomcatMojoTest {
         Files.writeString(home.resolve("conf").resolve("server.xml"), "<Server/>");
 
         String scriptName = System.getProperty("os.name").toLowerCase().contains("windows")
-                ? "catalina.bat" : "catalina.sh";
+                ? "catalina.bat"
+                : "catalina.sh";
         Path script = home.resolve("bin").resolve(scriptName);
         Files.writeString(script, "echo test");
         if (!scriptName.endsWith(".bat")) {

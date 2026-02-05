@@ -1,5 +1,18 @@
 package io.github.rajendarreddyj.tomcat;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.lang.reflect.Field;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
 import org.junit.jupiter.api.BeforeEach;
@@ -7,16 +20,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-
-import java.lang.reflect.Field;
-import java.net.ServerSocket;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 class RunMojoTest {
 
@@ -87,9 +90,9 @@ class RunMojoTest {
 
     @Test
     void executeThrowsWhenPortInUse() throws Exception {
-        // Bind the port
+        // Bind the port to localhost explicitly to match validatePortAvailable() check
         int port = findAvailablePort();
-        try (ServerSocket socket = new ServerSocket(port)) {
+        try (ServerSocket socket = new ServerSocket(port, 1, InetAddress.getByName("localhost"))) {
             setField(mojo, "httpPort", port);
 
             assertThrows(MojoExecutionException.class, () -> mojo.execute());
@@ -189,7 +192,7 @@ class RunMojoTest {
     }
 
     private int findAvailablePort() throws Exception {
-        try (ServerSocket socket = new ServerSocket(0)) {
+        try (ServerSocket socket = new ServerSocket(0, 1, InetAddress.getByName("localhost"))) {
             return socket.getLocalPort();
         }
     }
