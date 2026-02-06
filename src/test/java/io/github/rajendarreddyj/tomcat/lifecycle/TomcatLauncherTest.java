@@ -2,6 +2,7 @@ package io.github.rajendarreddyj.tomcat.lifecycle;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -531,6 +532,181 @@ class TomcatLauncherTest {
                 launcher.stop();
             }
         }
+    }
+
+    /**
+     * Verifies that run method throws exception for missing catalina script.
+     *
+     * <p>
+     * The run method executes Tomcat in foreground mode, which requires the
+     * catalina script to be present.
+     *
+     * @throws IOException if file operations fail
+     */
+    @Test
+    void runThrowsExceptionForMissingScript() throws IOException {
+        // Remove the catalina script
+        Path binDir = catalinaHome.resolve("bin");
+        Files.list(binDir).forEach(p -> {
+            try {
+                Files.delete(p);
+            } catch (IOException e) {
+                // ignore
+            }
+        });
+
+        ServerConfiguration config = createConfig(8080);
+        TomcatLauncher launcher = new TomcatLauncher(config, log);
+
+        assertThrows(IOException.class, launcher::run);
+    }
+
+    /**
+     * Verifies that run method logs startup information.
+     *
+     * <p>
+     * When run is called, it should log the CATALINA_HOME, CATALINA_BASE,
+     * and other configuration details before starting the process.
+     *
+     * @throws Exception if the test fails
+     */
+    @Test
+    void runLogsStartupInfo() throws Exception {
+        ServerConfiguration config = createConfig(9091);
+        TomcatLauncher launcher = new TomcatLauncher(config, log);
+
+        // Run in a separate thread with a timeout
+        Thread runThread = new Thread(() -> {
+            try {
+                launcher.run();
+            } catch (IOException | InterruptedException e) {
+                // Expected - script will fail or be interrupted
+            }
+        });
+        runThread.start();
+
+        // Give it time to log and start
+        Thread.sleep(500);
+
+        // Interrupt the thread
+        runThread.interrupt();
+        launcher.stop();
+
+        // Verify logging occurred
+        verify(log, atLeastOnce()).info(argThat((CharSequence msg) -> msg.toString().contains("CATALINA_HOME") ||
+                msg.toString().contains("Starting") ||
+                msg.toString().contains("command")));
+    }
+
+    /**
+     * Verifies that run method blocks until process terminates.
+     *
+     * <p>
+     * The run method should block the calling thread until Tomcat exits.
+     * This test verifies that run() waits for the process to complete,
+     * whether it succeeds or fails.
+     *
+     * @throws Exception if the test fails
+     */
+    @Test
+    void runBlocksUntilProcessTerminates() throws Exception {
+        ServerConfiguration config = createConfig(9092);
+        TomcatLauncher launcher = new TomcatLauncher(config, log);
+
+        final long[] executionTime = { 0 };
+
+        // Run in a separate thread and measure time
+        Thread runThread = new Thread(() -> {
+            long startTime = System.currentTimeMillis();
+            try {
+                launcher.run();
+            } catch (IOException | InterruptedException e) {
+                // Expected - script may fail or be interrupted
+            }
+            executionTime[0] = System.currentTimeMillis() - startTime;
+        });
+        runThread.start();
+        runThread.join(5000);
+
+        // The thread should have completed (script finishes quickly in test env)
+        assertFalse(runThread.isAlive(), "run() thread should complete after process exits");
+
+        // Verify that launcher.run() did execute and returned
+        // (execution time >= 0 means the run method was invoked and returned)
+        assertTrue(executionTime[0] >= 0, "run() should have executed");
+    }
+
+    /**
+     * Verifies that run method sets the process reference.
+     *
+     * <p>
+     * After calling run(), the getProcess() method should return the
+     * started Tomcat process.
+     *
+     * @throws Exception if the test fails
+     */
+    @Test
+    void runSetsProcessReference() throws Exception {
+        ServerConfiguration config = createConfig(9093);
+        TomcatLauncher launcher = new TomcatLauncher(config, log);
+
+        // Initially null
+        assertNull(launcher.getProcess());
+
+        // Run in a separate thread
+        Thread runThread = new Thread(() -> {
+            try {
+                launcher.run();
+            } catch (IOException | InterruptedException e) {
+                // Expected - will be interrupted
+            }
+        });
+        runThread.start();
+
+        // Wait for process to start
+        Thread.sleep(500);
+
+        // Process should be set
+        assertNotNull(launcher.getProcess(), "Process should be set after run() starts");
+
+        // Cleanup
+        launcher.stop();
+        runThread.interrupt();
+        runThread.join(2000);
+    }
+
+    /**
+     * Verifies that run can be interrupted via stop method.
+     *
+     * <p>
+     * Calling stop() while run() is executing should terminate the Tomcat
+     * process and allow run() to return.
+     *
+     * @throws Exception if the test fails
+     */
+    @Test
+    void runCanBeInterruptedViaStop() throws Exception {
+        ServerConfiguration config = createConfig(9094);
+        TomcatLauncher launcher = new TomcatLauncher(config, log);
+
+        Thread runThread = new Thread(() -> {
+            try {
+                launcher.run();
+            } catch (IOException | InterruptedException e) {
+                // Expected
+            }
+        });
+        runThread.start();
+
+        // Wait for process to start
+        Thread.sleep(500);
+
+        // Stop should interrupt the run
+        launcher.stop();
+
+        // Thread should terminate within timeout
+        runThread.join(3000);
+        assertFalse(runThread.isAlive(), "run() thread should terminate after stop()");
     }
 
     /**

@@ -1,18 +1,23 @@
 package io.github.rajendarreddyj.tomcat.download;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import com.sun.net.httpserver.HttpServer;
 
 /**
  * Unit tests for {@link ChecksumValidator}.
@@ -36,12 +41,34 @@ class ChecksumValidatorTest {
     /** The ChecksumValidator instance under test. */
     private ChecksumValidator validator;
 
+    /** HTTP server for serving mock checksum files. */
+    private HttpServer httpServer;
+
+    /** Port for the test HTTP server. */
+    private int serverPort;
+
     /**
      * Sets up the test environment before each test.
+     *
+     * @throws IOException if server setup fails
      */
     @BeforeEach
-    void setUp() {
+    void setUp() throws IOException {
         validator = new ChecksumValidator();
+        // Start a local HTTP server for testing validate() method
+        httpServer = HttpServer.create(new InetSocketAddress(0), 0);
+        serverPort = httpServer.getAddress().getPort();
+        httpServer.start();
+    }
+
+    /**
+     * Cleans up resources after each test.
+     */
+    @AfterEach
+    void tearDown() {
+        if (httpServer != null) {
+            httpServer.stop(0);
+        }
     }
 
     /**
@@ -147,5 +174,159 @@ class ChecksumValidatorTest {
         String checksum2 = validator.calculateChecksum(file2);
 
         assertNotEquals(checksum1, checksum2);
+    }
+
+    /**
+     * Verifies that validate returns true when checksum matches.
+     *
+     * @throws IOException if file operations fail
+     */
+    @Test
+    void validateReturnsTrueWhenChecksumMatches() throws IOException {
+        Path testFile = tempDir.resolve("test.txt");
+        Files.writeString(testFile, "Hello, World!");
+
+        // SHA-512 of "Hello, World!"
+        String expectedChecksum = "374d794a95cdcfd8b35993185fef9ba368f160d8daf432d08ba9f1ed1e5abe6cc69291e0fa2fe0006a52570ef18c19def4e617c33ce52ef0a6e5fbe318cb0387";
+
+        // Set up HTTP server to return the checksum
+        httpServer.createContext("/checksum.sha512", exchange -> {
+            byte[] response = expectedChecksum.getBytes();
+            exchange.sendResponseHeaders(200, response.length);
+            exchange.getResponseBody().write(response);
+            exchange.close();
+        });
+
+        String checksumUrl = "http://localhost:" + serverPort + "/checksum.sha512";
+        assertTrue(validator.validate(testFile, checksumUrl));
+    }
+
+    /**
+     * Verifies that validate returns false when checksum does not match.
+     *
+     * @throws IOException if file operations fail
+     */
+    @Test
+    void validateReturnsFalseWhenChecksumDoesNotMatch() throws IOException {
+        Path testFile = tempDir.resolve("test.txt");
+        Files.writeString(testFile, "Hello, World!");
+
+        // Different checksum
+        String wrongChecksum = "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
+
+        httpServer.createContext("/wrong-checksum.sha512", exchange -> {
+            byte[] response = wrongChecksum.getBytes();
+            exchange.sendResponseHeaders(200, response.length);
+            exchange.getResponseBody().write(response);
+            exchange.close();
+        });
+
+        String checksumUrl = "http://localhost:" + serverPort + "/wrong-checksum.sha512";
+        assertFalse(validator.validate(testFile, checksumUrl));
+    }
+
+    /**
+     * Verifies that validate handles checksum with filename suffix (Apache format).
+     *
+     * <p>
+     * Apache checksum files typically contain the hash followed by the filename:
+     * {@code 374d794a...  apache-tomcat-10.1.52.zip}
+     *
+     * @throws IOException if file operations fail
+     */
+    @Test
+    void validateHandlesChecksumWithFilename() throws IOException {
+        Path testFile = tempDir.resolve("test.txt");
+        Files.writeString(testFile, "Hello, World!");
+
+        // Apache format: checksum followed by filename
+        String checksumWithFilename = "374d794a95cdcfd8b35993185fef9ba368f160d8daf432d08ba9f1ed1e5abe6cc69291e0fa2fe0006a52570ef18c19def4e617c33ce52ef0a6e5fbe318cb0387  apache-tomcat-10.1.52.zip";
+
+        httpServer.createContext("/apache-format.sha512", exchange -> {
+            byte[] response = checksumWithFilename.getBytes();
+            exchange.sendResponseHeaders(200, response.length);
+            exchange.getResponseBody().write(response);
+            exchange.close();
+        });
+
+        String checksumUrl = "http://localhost:" + serverPort + "/apache-format.sha512";
+        assertTrue(validator.validate(testFile, checksumUrl));
+    }
+
+    /**
+     * Verifies that validate handles uppercase checksum correctly.
+     *
+     * @throws IOException if file operations fail
+     */
+    @Test
+    void validateHandlesUppercaseChecksum() throws IOException {
+        Path testFile = tempDir.resolve("test.txt");
+        Files.writeString(testFile, "Hello, World!");
+
+        // Same checksum in uppercase
+        String uppercaseChecksum = "374D794A95CDCFD8B35993185FEF9BA368F160D8DAF432D08BA9F1ED1E5ABE6CC69291E0FA2FE0006A52570EF18C19DEF4E617C33CE52EF0A6E5FBE318CB0387";
+
+        httpServer.createContext("/uppercase.sha512", exchange -> {
+            byte[] response = uppercaseChecksum.getBytes();
+            exchange.sendResponseHeaders(200, response.length);
+            exchange.getResponseBody().write(response);
+            exchange.close();
+        });
+
+        String checksumUrl = "http://localhost:" + serverPort + "/uppercase.sha512";
+        assertTrue(validator.validate(testFile, checksumUrl));
+    }
+
+    /**
+     * Verifies that validate throws IOException when checksum URL is unreachable.
+     *
+     * @throws IOException if file operations fail
+     */
+    @Test
+    void validateThrowsIOExceptionWhenUrlUnreachable() throws IOException {
+        Path testFile = tempDir.resolve("test.txt");
+        Files.writeString(testFile, "test content");
+
+        // Use a non-existent URL
+        String unreachableUrl = "http://localhost:" + serverPort + "/nonexistent.sha512";
+
+        assertThrows(IOException.class, () -> validator.validate(testFile, unreachableUrl));
+    }
+
+    /**
+     * Verifies that validate throws IOException for invalid URL format.
+     *
+     * @throws IOException if file operations fail
+     */
+    @Test
+    void validateThrowsExceptionForInvalidUrl() throws IOException {
+        Path testFile = tempDir.resolve("test.txt");
+        Files.writeString(testFile, "test content");
+
+        assertThrows(Exception.class, () -> validator.validate(testFile, "not-a-valid-url"));
+    }
+
+    /**
+     * Verifies that validate handles empty file correctly.
+     *
+     * @throws IOException if file operations fail
+     */
+    @Test
+    void validateHandlesEmptyFile() throws IOException {
+        Path emptyFile = tempDir.resolve("empty.txt");
+        Files.createFile(emptyFile);
+
+        // SHA-512 of empty file
+        String emptyFileChecksum = "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
+
+        httpServer.createContext("/empty.sha512", exchange -> {
+            byte[] response = emptyFileChecksum.getBytes();
+            exchange.sendResponseHeaders(200, response.length);
+            exchange.getResponseBody().write(response);
+            exchange.close();
+        });
+
+        String checksumUrl = "http://localhost:" + serverPort + "/empty.sha512";
+        assertTrue(validator.validate(emptyFile, checksumUrl));
     }
 }

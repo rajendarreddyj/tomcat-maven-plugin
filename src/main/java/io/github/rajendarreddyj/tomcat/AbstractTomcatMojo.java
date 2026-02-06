@@ -120,6 +120,33 @@ public abstract class AbstractTomcatMojo extends AbstractMojo {
     @Parameter
     protected Map<String, String> environmentVariables;
 
+    // ==================== Debug Configuration ====================
+
+    /**
+     * Port for the JDWP debug agent to listen on.
+     * The debugger will connect to this port.
+     * Default: 5005 (IntelliJ IDEA default)
+     */
+    @Parameter(property = "tomcat.debug.port", defaultValue = "5005")
+    protected int debugPort;
+
+    /**
+     * Whether to suspend JVM startup until a debugger attaches.
+     * Set to true when you need to debug application initialization.
+     * Default: false (start immediately)
+     */
+    @Parameter(property = "tomcat.debug.suspend", defaultValue = "false")
+    protected boolean debugSuspend;
+
+    /**
+     * Host/interface for the debug agent to bind to.
+     * Use "*" to allow connections from any host (remote debugging).
+     * Use "localhost" to restrict to local connections only.
+     * Default: * (allow remote debugging)
+     */
+    @Parameter(property = "tomcat.debug.host", defaultValue = "*")
+    protected String debugHost;
+
     // ==================== Deployment Configuration ====================
 
     /**
@@ -317,15 +344,23 @@ public abstract class AbstractTomcatMojo extends AbstractMojo {
         Path resolvedHome = resolveCatalinaHome();
         Path resolvedBase = catalinaBase != null ? catalinaBase.toPath() : null;
 
-        // Generate custom CATALINA_BASE for port configuration if not specified
+        // Always generate custom CATALINA_BASE when not explicitly specified
+        // This ensures port configuration is applied without modifying the original
+        // installation
         if (resolvedBase == null && httpPort != 8080) {
             try {
                 Path generatedBase = tomcatCacheDir.toPath()
                         .resolve("base-" + tomcatVersion + "-" + httpPort);
 
-                if (!CatalinaBaseGenerator.isValidCatalinaBase(generatedBase)) {
+                // Check if base exists AND has the correct port configured
+                boolean needsGeneration = !CatalinaBaseGenerator.isValidCatalinaBase(generatedBase)
+                        || !CatalinaBaseGenerator.hasCorrectPort(generatedBase, httpPort);
+
+                if (needsGeneration) {
+                    getLog().info("Generating CATALINA_BASE with HTTP port " + httpPort);
                     CatalinaBaseGenerator.generate(resolvedHome, generatedBase, httpPort, httpHost);
                 }
+
                 resolvedBase = generatedBase;
                 getLog().info("Using generated CATALINA_BASE: " + resolvedBase);
             } catch (IOException e) {
@@ -374,5 +409,39 @@ public abstract class AbstractTomcatMojo extends AbstractMojo {
                 .autopublishEnabled(autopublishEnabled)
                 .autopublishInactivityLimit(autopublishInactivityLimit)
                 .build();
+    }
+
+    /**
+     * Builds the JDWP agent string for debug mode.
+     *
+     * <p>
+     * Constructs a JDWP agent argument in the format:
+     * {@code -agentlib:jdwp=transport=dt_socket,server=y,suspend={n|y},address={host}:{port}}
+     * </p>
+     *
+     * @return the JDWP agent JVM argument string
+     */
+    protected String buildJdwpAgentArg() {
+        return String.format(
+                "-agentlib:jdwp=transport=dt_socket,server=y,suspend=%s,address=%s:%d",
+                debugSuspend ? "y" : "n",
+                debugHost,
+                debugPort);
+    }
+
+    /**
+     * Validates that the debug port is available.
+     *
+     * @throws MojoExecutionException if the debug port is already in use
+     */
+    protected void validateDebugPortAvailable() throws MojoExecutionException {
+        try (ServerSocket socket = new ServerSocket(debugPort, 1, InetAddress.getByName("0.0.0.0"))) {
+            socket.setReuseAddress(true);
+            getLog().debug("Debug port " + debugPort + " is available");
+        } catch (IOException e) {
+            throw new MojoExecutionException(
+                    "Debug port " + debugPort + " is already in use. " +
+                            "Configure a different port with -Dtomcat.debug.port=XXXX");
+        }
     }
 }

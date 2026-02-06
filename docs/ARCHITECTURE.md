@@ -213,6 +213,8 @@ classDiagram
         +buildDeployableConfiguration() DeployableConfiguration
     }
 
+    note for AbstractTomcatMojo "catalinaBase: If not specified and httpPort!=8080,\nauto-generates at tomcatCacheDir/base-{ver}-{port}\ntomcatCacheDir: Stores downloads AND generated bases"
+
     class RunMojo {
         +execute()
     }
@@ -385,6 +387,7 @@ classDiagram
         <<utility>>
         +generate(Path, Path, int, String)$
         +isValidCatalinaBase(Path)$ boolean
+        +hasCorrectPort(Path, int)$ boolean
         -modifyServerXml(Path, int, String)$
     }
 
@@ -834,6 +837,25 @@ flowchart TD
 | Deployment failure | MojoExecutionException with details |
 | Startup timeout | IOException with timeout info |
 | Shutdown timeout | Force-kill process |
+
+---
+
+## CATALINA_BASE Generation
+
+When `httpPort` differs from 8080 and `catalinaBase` is not explicitly specified, the plugin auto-generates a custom CATALINA_BASE:
+
+| Aspect | Details |
+|--------|--------|
+| **Location** | `{tomcatCacheDir}/base-{version}-{port}` |
+| **Structure** | `conf/`, `logs/`, `temp/`, `webapps/`, `work/` |
+| **server.xml modifications** | HTTP connector port, shutdown port (-1), AJP disabled |
+| **Caching** | Reused if valid and port matches; regenerated otherwise |
+| **Validation** | `CatalinaBaseGenerator.hasCorrectPort()` verifies configuration |
+
+The generated base allows:
+- Running with custom ports without modifying CATALINA_HOME
+- Multiple simultaneous instances with different ports
+- Preserving the original Tomcat installation
 
 ---
 

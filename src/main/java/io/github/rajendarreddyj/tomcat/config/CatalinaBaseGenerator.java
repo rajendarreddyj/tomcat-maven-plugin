@@ -1,6 +1,7 @@
 package io.github.rajendarreddyj.tomcat.config;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -19,13 +20,23 @@ import java.util.stream.Stream;
  */
 public final class CatalinaBaseGenerator {
 
+    /** Constant for server.xml file name. */
+    private static final String SERVER_XML_FILE = "server.xml";
+
     /**
-     * Pattern to match HTTP connector port attribute.
-     * Captures the port="8080" portion of HTTP connectors for replacement.
+     * Pattern to match HTTP connector element.
+     * Matches Connector elements that contain protocol="HTTP".
      */
-    private static final Pattern CONNECTOR_PORT_PATTERN = Pattern.compile(
-            "(<Connector[^>]*port=\")8080(\"[^>]*protocol=\"HTTP)",
+    private static final Pattern HTTP_CONNECTOR_PATTERN = Pattern.compile(
+            "<Connector[^>]*protocol=\"HTTP[^\"]*\"[^>]*/?>",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+
+    /**
+     * Pattern to match port attribute within a Connector element.
+     */
+    private static final Pattern PORT_ATTRIBUTE_PATTERN = Pattern.compile(
+            "(port=\")(\\d+)(\")",
+            Pattern.CASE_INSENSITIVE);
 
     /**
      * Pattern to match HTTP connector for adding address attribute.
@@ -42,14 +53,6 @@ public final class CatalinaBaseGenerator {
     private static final Pattern SERVER_SHUTDOWN_PORT_PATTERN = Pattern.compile(
             "(<Server[^>]*port=\")8005(\")",
             Pattern.CASE_INSENSITIVE);
-
-    /**
-     * Pattern to match AJP connector port.
-     * Used to identify AJP connectors for commenting out.
-     */
-    private static final Pattern AJP_PORT_PATTERN = Pattern.compile(
-            "(<Connector[^>]*port=\")8009(\"[^>]*protocol=\"AJP)",
-            Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
     /**
      * Private constructor to prevent instantiation of utility class.
@@ -95,14 +98,14 @@ public final class CatalinaBaseGenerator {
                             Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
                         }
                     } catch (IOException e) {
-                        throw new RuntimeException("Failed to copy config file: " + source, e);
+                        throw new UncheckedIOException("Failed to copy config file: " + source, e);
                     }
                 });
             }
         }
 
         // Modify server.xml with custom port settings
-        Path serverXml = targetConf.resolve("server.xml");
+        Path serverXml = targetConf.resolve(SERVER_XML_FILE);
         if (Files.exists(serverXml)) {
             modifyServerXml(serverXml, httpPort, httpHost);
         }
@@ -119,9 +122,20 @@ public final class CatalinaBaseGenerator {
     private static void modifyServerXml(Path serverXml, int httpPort, String httpHost) throws IOException {
         String content = Files.readString(serverXml);
 
-        // Replace HTTP connector port (8080 -> custom port)
-        content = CONNECTOR_PORT_PATTERN.matcher(content)
-                .replaceAll("$1" + httpPort + "$2");
+        // Replace HTTP connector port using a two-step approach:
+        // 1. Find HTTP connector elements
+        // 2. Replace port attribute within them
+        Matcher httpConnectorMatcher = HTTP_CONNECTOR_PATTERN.matcher(content);
+        StringBuffer sb = new StringBuffer();
+        while (httpConnectorMatcher.find()) {
+            String connector = httpConnectorMatcher.group();
+            // Replace port in this HTTP connector
+            String modifiedConnector = PORT_ATTRIBUTE_PATTERN.matcher(connector)
+                    .replaceFirst("$1" + httpPort + "$3");
+            httpConnectorMatcher.appendReplacement(sb, Matcher.quoteReplacement(modifiedConnector));
+        }
+        httpConnectorMatcher.appendTail(sb);
+        content = sb.toString();
 
         // Add address attribute if host is specified and not localhost/0.0.0.0
         if (httpHost != null && !httpHost.isBlank()
@@ -161,6 +175,37 @@ public final class CatalinaBaseGenerator {
         }
         // Check for essential directories and files
         return Files.isDirectory(catalinaBase.resolve("conf"))
-                && Files.exists(catalinaBase.resolve("conf").resolve("server.xml"));
+                && Files.exists(catalinaBase.resolve("conf").resolve(SERVER_XML_FILE));
+    }
+
+    /**
+     * Checks if a CATALINA_BASE has the correct HTTP port configured.
+     *
+     * @param catalinaBase the CATALINA_BASE path to check
+     * @param expectedPort the expected HTTP port
+     * @return true if the HTTP connector port matches the expected port
+     */
+    public static boolean hasCorrectPort(Path catalinaBase, int expectedPort) {
+        Path serverXml = catalinaBase.resolve("conf").resolve(SERVER_XML_FILE);
+        if (!Files.exists(serverXml)) {
+            return false;
+        }
+        try {
+            String content = Files.readString(serverXml);
+            // Find HTTP connector and check its port
+            Matcher httpConnectorMatcher = HTTP_CONNECTOR_PATTERN.matcher(content);
+            if (httpConnectorMatcher.find()) {
+                String connector = httpConnectorMatcher.group();
+                Matcher portMatcher = PORT_ATTRIBUTE_PATTERN.matcher(connector);
+                if (portMatcher.find()) {
+                    int actualPort = Integer.parseInt(portMatcher.group(2));
+                    return actualPort == expectedPort;
+                }
+            }
+        } catch (IOException | NumberFormatException e) {
+            // If we can't read or parse, assume it's not correct
+            return false;
+        }
+        return false;
     }
 }

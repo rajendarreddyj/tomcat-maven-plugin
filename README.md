@@ -51,6 +51,7 @@ Add the plugin to your project's `pom.xml`:
 | Goal | Description |
 |------|-------------|
 | `tomcat:run` | Runs Tomcat in the foreground with your webapp deployed |
+| `tomcat:debug` | Runs Tomcat in debug mode with JDWP agent enabled |
 | `tomcat:start` | Starts Tomcat in the background |
 | `tomcat:stop` | Stops a running Tomcat instance |
 | `tomcat:deploy` | Deploys/redeploys the webapp to a running Tomcat |
@@ -101,7 +102,10 @@ mvn tomcat:deploy
         <!-- Tomcat Version & Location -->
         <tomcatVersion>10.1.52</tomcatVersion>
         <catalinaHome>/path/to/tomcat</catalinaHome>
+        <!-- catalinaBase: Optional. If omitted and httpPort!=8080, 
+             auto-generates at {tomcatCacheDir}/base-{version}-{port} -->
         <catalinaBase>/path/to/instance</catalinaBase>
+        <!-- tomcatCacheDir: Used for Tomcat downloads AND generated CATALINA_BASE -->
         <tomcatCacheDir>${user.home}/.m2/tomcat-cache</tomcatCacheDir>
 
         <!-- Server Configuration -->
@@ -148,8 +152,8 @@ mvn tomcat:deploy
 |-----------|----------|---------|-------------|
 | `tomcatVersion` | `tomcat.version` | `10.1.52` | Tomcat version to use |
 | `catalinaHome` | `tomcat.catalina.home` | Auto-download | Tomcat installation directory |
-| `catalinaBase` | `tomcat.catalina.base` | Same as catalinaHome | Tomcat instance directory |
-| `tomcatCacheDir` | `tomcat.cache.dir` | `~/.m2/tomcat-cache` | Directory for cached Tomcat downloads |
+| `catalinaBase` | `tomcat.catalina.base` | Auto-generated | Tomcat instance directory (CATALINA_BASE). If not specified and `httpPort` differs from 8080, a custom base is generated at `{tomcatCacheDir}/base-{version}-{port}` with modified `server.xml` |
+| `tomcatCacheDir` | `tomcat.cache.dir` | `~/.m2/tomcat-cache` | Directory for cached Tomcat downloads and auto-generated CATALINA_BASE directories |
 | `httpPort` | `tomcat.http.port` | `8080` | HTTP port |
 | `httpHost` | `tomcat.http.host` | `localhost` | HTTP host to bind to |
 | `javaHome` | `tomcat.java.home` | `${java.home}` | Java installation directory |
@@ -180,6 +184,18 @@ If `catalinaHome` is not specified or doesn't exist, the plugin automatically do
 3. Validates download using SHA-512 checksum
 4. Extracts to `~/.m2/tomcat-cache/apache-tomcat-{version}` (configurable via `tomcatCacheDir`)
 
+## Auto-Generated CATALINA_BASE
+
+When `httpPort` differs from the default (8080) and `catalinaBase` is not specified, the plugin automatically generates a custom CATALINA_BASE directory:
+
+1. Creates `{tomcatCacheDir}/base-{version}-{port}` (e.g., `~/.m2/tomcat-cache/base-10.1.52-9080`)
+2. Copies configuration files from CATALINA_HOME
+3. Modifies `server.xml` to use the configured HTTP port and host
+4. Disables the shutdown port (set to -1) for security
+5. Comments out the AJP connector
+
+This allows running multiple Tomcat instances with different ports without modifying the original installation. The generated base is cached and reused if the port configuration matches.
+
 ## Hot Deployment (Auto-publish)
 
 Enable auto-publish to automatically redeploy when source files change:
@@ -192,6 +208,94 @@ Enable auto-publish to automatically redeploy when source files change:
 ```
 
 Changes are detected using file system watching. The plugin waits for the specified inactivity period (no file changes) before republishing to batch rapid changes together.
+
+## Debugging Your Application
+
+Start Tomcat with debugging enabled:
+
+```bash
+mvn tomcat:debug
+```
+
+The debug goal automatically configures the JDWP agent and prints connection instructions.
+
+### Debug Configuration Parameters
+
+| Parameter | Property | Default | Description |
+|-----------|----------|---------|-------------|
+| `debugPort` | `tomcat.debug.port` | `5005` | Port for debugger to connect |
+| `debugSuspend` | `tomcat.debug.suspend` | `false` | Wait for debugger before starting |
+| `debugHost` | `tomcat.debug.host` | `*` | Host/interface to bind debug agent |
+
+### Command Line Examples
+
+```bash
+# Default debug mode (port 5005, no suspend)
+mvn tomcat:debug
+
+# Custom debug port
+mvn tomcat:debug -Dtomcat.debug.port=8000
+
+# Suspend until debugger attaches (for debugging startup)
+mvn tomcat:debug -Dtomcat.debug.suspend=true
+
+# Local connections only
+mvn tomcat:debug -Dtomcat.debug.host=localhost
+```
+
+### POM Configuration Example
+
+```xml
+<plugin>
+    <groupId>io.github.rajendarreddyj</groupId>
+    <artifactId>tomcat-maven-plugin</artifactId>
+    <configuration>
+        <httpPort>8080</httpPort>
+        <debugPort>5005</debugPort>
+        <debugSuspend>false</debugSuspend>
+        <contextPath>/myapp</contextPath>
+    </configuration>
+</plugin>
+```
+
+### VS Code Setup
+
+1. Add to `.vscode/launch.json`:
+
+```json
+{
+    "type": "java",
+    "name": "Attach to Tomcat",
+    "request": "attach",
+    "hostName": "localhost",
+    "port": 5005
+}
+```
+
+2. Run `mvn tomcat:debug` in terminal
+3. Set breakpoints in your code
+4. Press F5 or select "Attach to Tomcat" in Run and Debug panel
+
+### IntelliJ IDEA Setup
+
+1. Run → Edit Configurations → Add → Remote JVM Debug
+2. Configure:
+   - Name: `Attach to Tomcat`
+   - Host: `localhost`
+   - Port: `5005`
+3. Run `mvn tomcat:debug` in terminal
+4. Set breakpoints and click Debug
+
+### Eclipse Setup
+
+1. Run → Debug Configurations → Remote Java Application → New
+2. Configure:
+   - Name: `Attach to Tomcat`
+   - Connection Type: Standard (Socket Attach)
+   - Host: `localhost`
+   - Port: `5005`
+3. Run `mvn tomcat:debug` in terminal
+4. Set breakpoints and click Debug
 
 ## Deploying as ROOT
 

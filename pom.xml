@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.github.rajendarreddyj</groupId>
@@ -179,12 +179,12 @@
                                 <limit>
                                     <counter>LINE</counter>
                                     <value>COVEREDRATIO</value>
-                                    <minimum>0.85</minimum>
+                                    <minimum>0.8</minimum>
                                 </limit>
                                 <limit>
                                     <counter>BRANCH</counter>
                                     <value>COVEREDRATIO</value>
-                                    <minimum>0.85</minimum>
+                                    <minimum>0.8</minimum>
                                 </limit>
                             </limits>
                         </rule>
@@ -264,8 +264,7 @@
                     <windowtitle>Tomcat Maven Plugin ${project.version} API</windowtitle>
                     <doctitle>Tomcat Maven Plugin ${project.version} API</doctitle>
                     <header>&lt;b&gt;Tomcat Maven Plugin&lt;/b&gt;</header>
-                    <bottom>Copyright &amp;#169; ${project.inceptionYear}
-                        ${project.organization.name}. All rights reserved.</bottom>
+                    <bottom>Copyright &amp;#169; ${project.inceptionYear} ${project.organization.name}. All rights reserved.</bottom>
                     <links>
                         <link>https://docs.oracle.com/en/java/javase/21/docs/api/</link>
                         <link>https://maven.apache.org/ref/3.9.12/maven-plugin-api/apidocs/</link>

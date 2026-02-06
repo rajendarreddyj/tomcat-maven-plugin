@@ -36,6 +36,13 @@
         },
         {
             "type": "java",
+            "name": "Attach to Tomcat Debug",
+            "request": "attach",
+            "hostName": "localhost",
+            "port": 5005
+        },
+        {
+            "type": "java",
             "name": "Debug All Tests",
             "request": "launch",
             "mainClass": "",
