@@ -151,6 +151,45 @@ class CatalinaBaseGeneratorTest {
     }
 
     /**
+     * Verifies that generate does not double-comment an AJP connector that is
+     * already inside an XML comment.
+     *
+     * @throws IOException if file operations fail
+     */
+    @Test
+    void generateDoesNotDoubleCommentAlreadyCommentedAjpConnector() throws IOException {
+        // Create a server.xml where AJP connector is already commented out
+        String serverXmlWithCommentedAjp = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Server port="8005" shutdown="SHUTDOWN">
+                    <Service name="Catalina">
+                        <Connector port="8080" protocol="HTTP/1.1"
+                                   connectionTimeout="20000"
+                                   redirectPort="8443" />
+                        <!-- AJP disabled by admin
+                        <Connector port="8009" protocol="AJP/1.3" redirectPort="8443" />
+                        -->
+                        <Engine name="Catalina" defaultHost="localhost">
+                            <Host name="localhost" appBase="webapps">
+                            </Host>
+                        </Engine>
+                    </Service>
+                </Server>
+                """;
+        Files.writeString(catalinaHome.resolve("conf").resolve("server.xml"), serverXmlWithCommentedAjp);
+
+        CatalinaBaseGenerator.generate(catalinaHome, catalinaBase, 9090, "localhost");
+
+        String serverXml = Files.readString(catalinaBase.resolve("conf").resolve("server.xml"));
+        // Should NOT contain double-commented AJP (nested comment markers)
+        assertFalse(serverXml.contains("<!-- Disabled for plugin use: <Connector port=\"8009\" protocol=\"AJP/1.3\""),
+                "Already commented AJP connector should not be double-commented");
+        // Original comment should be preserved
+        assertTrue(serverXml.contains("<!-- AJP disabled by admin"),
+                "Original comment should be preserved");
+    }
+
+    /**
      * Verifies that generate adds address attribute for custom hosts.
      *
      * @throws IOException if file operations fail
@@ -563,5 +602,31 @@ class CatalinaBaseGeneratorTest {
         CatalinaBaseGenerator.generate(catalinaHome, catalinaBase2, 49999, "localhost");
         assertTrue(CatalinaBaseGenerator.hasCorrectPort(catalinaBase2, 49999));
         assertFalse(CatalinaBaseGenerator.hasCorrectPort(catalinaBase2, 49998));
+    }
+
+    /**
+     * Verifies that generate adds address attribute correctly for custom host.
+     *
+     * @throws IOException if file operations fail
+     */
+    @Test
+    void generateAddsAddressCorrectlyHelper() throws IOException {
+        String serverXml = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Server port="8005" shutdown="SHUTDOWN">
+                    <Service name="Catalina">
+                        <Connector port="8080" protocol="HTTP/1.1"
+                                   connectionTimeout="20000"
+                                   redirectPort="8443" />
+                    </Service>
+                </Server>
+                """;
+        Files.writeString(catalinaHome.resolve("conf").resolve("server.xml"), serverXml);
+
+        CatalinaBaseGenerator.generate(catalinaHome, catalinaBase, 8020, "127.0.0.1");
+
+        String result = Files.readString(catalinaBase.resolve("conf").resolve("server.xml"));
+        assertTrue(result.contains("address=\"127.0.0.1\" />"));
+        assertFalse(result.contains("/ address="));
     }
 }

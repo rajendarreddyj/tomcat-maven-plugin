@@ -199,4 +199,220 @@ class DeployableConfigurationTest {
                 .moduleName(MODULE_NAME)
                 .build());
     }
+
+    /**
+     * Verifies that context path normalization removes trailing slash.
+     *
+     * <p>
+     * Context path "/myapp/" should be normalized to "/myapp".
+     * </p>
+     */
+    @Test
+    void normalizeContextPathRemovesTrailingSlash() {
+        DeployableConfiguration config = DeployableConfiguration.builder()
+                .moduleName(MODULE_NAME)
+                .sourcePath(Path.of("/source"))
+                .deployDir(Path.of("/target"))
+                .contextPath("/myapp/")
+                .build();
+
+        assertEquals("/myapp", config.getContextPath());
+    }
+
+    /**
+     * Verifies that blank context path (whitespace only) is normalized to root.
+     *
+     * <p>
+     * Context path with spaces should be treated as empty and normalized to "/".
+     * </p>
+     */
+    @Test
+    void normalizeContextPathBlankBecomesRoot() {
+        DeployableConfiguration config = DeployableConfiguration.builder()
+                .moduleName(MODULE_NAME)
+                .sourcePath(Path.of("/source"))
+                .deployDir(Path.of("/target"))
+                .contextPath("   ")
+                .build();
+
+        assertEquals("/", config.getContextPath());
+    }
+
+    /**
+     * Verifies that context path with leading/trailing whitespace is trimmed.
+     *
+     * <p>
+     * Whitespace around the context path should be removed.
+     * </p>
+     */
+    @Test
+    void normalizeContextPathTrimsWhitespace() {
+        DeployableConfiguration config = DeployableConfiguration.builder()
+                .moduleName(MODULE_NAME)
+                .sourcePath(Path.of("/source"))
+                .deployDir(Path.of("/target"))
+                .contextPath("  /myapp  ")
+                .build();
+
+        assertEquals("/myapp", config.getContextPath());
+    }
+
+    /**
+     * Verifies that target directory name returns empty string when
+     * deploymentOutputName is blank.
+     *
+     * <p>
+     * When deploymentOutputName is blank (but not null), it should fall back
+     * to deriving the name from context path.
+     * </p>
+     */
+    @Test
+    void getTargetDirectoryNameWithBlankDeploymentOutputName() {
+        DeployableConfiguration config = DeployableConfiguration.builder()
+                .moduleName(MODULE_NAME)
+                .sourcePath(Path.of("/source"))
+                .deployDir(Path.of("/target"))
+                .contextPath("/myapp")
+                .deploymentOutputName("   ")
+                .build();
+
+        // Blank deploymentOutputName should fall back to context path derivation
+        assertEquals("myapp", config.getTargetDirectoryName());
+    }
+
+    /**
+     * Verifies that toString() contains all relevant field information.
+     */
+    @Test
+    void toStringContainsAllFields() {
+        DeployableConfiguration config = DeployableConfiguration.builder()
+                .moduleName(MODULE_NAME)
+                .sourcePath(Path.of("/source"))
+                .deployDir(Path.of("/target"))
+                .contextPath("/myapp")
+                .autopublishEnabled(true)
+                .autopublishInactivityLimit(45)
+                .deploymentOutputName("custom-output")
+                .build();
+
+        String str = config.toString();
+        assertTrue(str.contains("DeployableConfiguration"));
+        assertTrue(str.contains("moduleName"));
+        assertTrue(str.contains("sourcePath"));
+        assertTrue(str.contains("contextPath"));
+        assertTrue(str.contains("deployDir"));
+        assertTrue(str.contains("autopublishEnabled"));
+        assertTrue(str.contains("autopublishInactivityLimit"));
+        assertTrue(str.contains("deploymentOutputName"));
+    }
+
+    /**
+     * Verifies that getModuleName() returns the configured module name.
+     */
+    @Test
+    void getModuleNameReturnsConfiguredValue() {
+        DeployableConfiguration config = DeployableConfiguration.builder()
+                .moduleName(MODULE_NAME)
+                .sourcePath(Path.of("/source"))
+                .build();
+
+        assertEquals(MODULE_NAME, config.getModuleName());
+    }
+
+    /**
+     * Verifies that getSourcePath() returns the configured source path.
+     */
+    @Test
+    void getSourcePathReturnsConfiguredValue() {
+        Path sourcePath = Path.of("/my/source/path");
+        DeployableConfiguration config = DeployableConfiguration.builder()
+                .moduleName(MODULE_NAME)
+                .sourcePath(sourcePath)
+                .build();
+
+        assertEquals(sourcePath, config.getSourcePath());
+    }
+
+    /**
+     * Verifies that getDeployDir() returns the configured deploy directory.
+     */
+    @Test
+    void getDeployDirReturnsConfiguredValue() {
+        Path deployDir = Path.of("/deploy/webapps");
+        DeployableConfiguration config = DeployableConfiguration.builder()
+                .moduleName(MODULE_NAME)
+                .sourcePath(Path.of("/source"))
+                .deployDir(deployDir)
+                .build();
+
+        assertEquals(deployDir, config.getDeployDir());
+    }
+
+    /**
+     * Verifies that getDeployDir() returns null when not configured.
+     */
+    @Test
+    void getDeployDirReturnsNullWhenNotConfigured() {
+        DeployableConfiguration config = DeployableConfiguration.builder()
+                .moduleName(MODULE_NAME)
+                .sourcePath(Path.of("/source"))
+                .build();
+
+        assertEquals(null, config.getDeployDir());
+    }
+
+    /**
+     * Verifies that getDeploymentOutputName() returns the configured value.
+     */
+    @Test
+    void getDeploymentOutputNameReturnsConfiguredValue() {
+        DeployableConfiguration config = DeployableConfiguration.builder()
+                .moduleName(MODULE_NAME)
+                .sourcePath(Path.of("/source"))
+                .deploymentOutputName("custom-webapp")
+                .build();
+
+        assertEquals("custom-webapp", config.getDeploymentOutputName());
+    }
+
+    /**
+     * Verifies that getDeploymentOutputName() returns null when not configured.
+     */
+    @Test
+    void getDeploymentOutputNameReturnsNullWhenNotConfigured() {
+        DeployableConfiguration config = DeployableConfiguration.builder()
+                .moduleName(MODULE_NAME)
+                .sourcePath(Path.of("/source"))
+                .build();
+
+        assertEquals(null, config.getDeploymentOutputName());
+    }
+
+    /**
+     * Verifies that autopublishInactivityLimit defaults to 30 when set to zero.
+     */
+    @Test
+    void autopublishInactivityLimitDefaultsToThirtyWhenZero() {
+        DeployableConfiguration config = DeployableConfiguration.builder()
+                .moduleName(MODULE_NAME)
+                .sourcePath(Path.of("/source"))
+                .autopublishInactivityLimit(0)
+                .build();
+
+        assertEquals(30, config.getAutopublishInactivityLimit());
+    }
+
+    /**
+     * Verifies that autopublishInactivityLimit defaults to 30 when set to negative.
+     */
+    @Test
+    void autopublishInactivityLimitDefaultsToThirtyWhenNegative() {
+        DeployableConfiguration config = DeployableConfiguration.builder()
+                .moduleName(MODULE_NAME)
+                .sourcePath(Path.of("/source"))
+                .autopublishInactivityLimit(-10)
+                .build();
+
+        assertEquals(30, config.getAutopublishInactivityLimit());
+    }
 }

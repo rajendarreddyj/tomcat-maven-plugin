@@ -43,7 +43,7 @@ public final class CatalinaBaseGenerator {
      * Captures the connector element to allow insertion of address attribute.
      */
     private static final Pattern CONNECTOR_ADDRESS_PATTERN = Pattern.compile(
-            "(<Connector[^>]*protocol=\"HTTP[^\"]*\"[^>]*)(/?>)",
+            "(<Connector[^>]*protocol=\"HTTP[^\"]*\"[^>]*?)(\\s*/?>)",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
     /**
@@ -53,6 +53,14 @@ public final class CatalinaBaseGenerator {
     private static final Pattern SERVER_SHUTDOWN_PORT_PATTERN = Pattern.compile(
             "(<Server[^>]*port=\")8005(\")",
             Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Pattern to match AJP connector element.
+     * Matches Connector elements that contain protocol="AJP".
+     */
+    private static final Pattern AJP_CONNECTOR_PATTERN = Pattern.compile(
+            "(<Connector[^>]*protocol=\"AJP[^\"]*\"[^>]*/?>)",
+            Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
     /**
      * Private constructor to prevent instantiation of utility class.
@@ -126,7 +134,7 @@ public final class CatalinaBaseGenerator {
         // 1. Find HTTP connector elements
         // 2. Replace port attribute within them
         Matcher httpConnectorMatcher = HTTP_CONNECTOR_PATTERN.matcher(content);
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         while (httpConnectorMatcher.find()) {
             String connector = httpConnectorMatcher.group();
             // Replace port in this HTTP connector
@@ -155,12 +163,33 @@ public final class CatalinaBaseGenerator {
         content = SERVER_SHUTDOWN_PORT_PATTERN.matcher(content)
                 .replaceAll("$1-1$2");
 
-        // Comment out AJP connector (typically not needed for development)
-        content = content.replaceAll(
-                "(<Connector[^>]*protocol=\"AJP[^\"]*\"[^>]*/?>)",
-                "<!-- Disabled for plugin use: $1 -->");
+        // Comment out AJP connector only if not already inside a comment
+        content = commentOutAjpConnectorIfEnabled(content);
 
         Files.writeString(serverXml, content);
+    }
+
+    /**
+     * Comments out AJP connector elements only if they are not already inside an XML comment.
+     *
+     * @param content the server.xml content
+     * @return the modified content with enabled AJP connectors commented out
+     */
+    private static String commentOutAjpConnectorIfEnabled(String content) {
+        Matcher ajpMatcher = AJP_CONNECTOR_PATTERN.matcher(content);
+        StringBuilder result = new StringBuilder();
+        while (ajpMatcher.find()) {
+            String beforeMatch = content.substring(0, ajpMatcher.start());
+            int lastCommentOpen = beforeMatch.lastIndexOf("<!--");
+            int lastCommentClose = beforeMatch.lastIndexOf("-->");
+            // Only comment out if not already inside a comment
+            if (lastCommentOpen == -1 || lastCommentClose > lastCommentOpen) {
+                ajpMatcher.appendReplacement(result,
+                        Matcher.quoteReplacement("<!-- Disabled for plugin use: " + ajpMatcher.group(1) + " -->"));
+            }
+        }
+        ajpMatcher.appendTail(result);
+        return result.toString();
     }
 
     /**

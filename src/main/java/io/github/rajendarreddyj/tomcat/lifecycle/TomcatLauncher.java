@@ -1,5 +1,6 @@
 package io.github.rajendarreddyj.tomcat.lifecycle;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.file.Files;
@@ -242,7 +243,7 @@ public class TomcatLauncher {
 
         // Classpath additions
         if (!config.getClasspathAdditions().isEmpty()) {
-            String pathSeparator = System.getProperty("path.separator");
+            String pathSeparator = File.pathSeparator;
             String additions = String.join(pathSeparator, config.getClasspathAdditions());
             String existing = env.getOrDefault("CLASSPATH", "");
             env.put("CLASSPATH", existing.isEmpty() ? additions : existing + pathSeparator + additions);

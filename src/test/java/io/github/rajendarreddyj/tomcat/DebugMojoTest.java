@@ -19,6 +19,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import io.github.rajendarreddyj.tomcat.config.ServerConfiguration;
+
 /**
  * Unit tests for {@link DebugMojo}.
  *
@@ -211,6 +213,150 @@ class DebugMojoTest {
         assertTrue(jdwpArg.contains("address=localhost:5005"));
     }
 
+    /**
+     * Verifies that padRight returns the original string when it equals target
+     * length.
+     *
+     * <p>
+     * Tests the branch where str.length() >= length, which should return
+     * the original string unchanged without padding.
+     * </p>
+     */
+    @DisplayName("shouldReturnOriginalStringWhenPadRightLengthEquals")
+    @Test
+    void shouldReturnOriginalStringWhenPadRightLengthEquals() throws Exception {
+        // Arrange - string with exact target length
+        String input = "12345";
+        int targetLength = 5;
+
+        // Act
+        String result = invokeMethod(mojo, "padRight", input, targetLength);
+
+        // Assert
+        assertEquals(input, result);
+        assertEquals(5, result.length());
+    }
+
+    /**
+     * Verifies that padRight returns the original string when it exceeds target
+     * length.
+     *
+     * <p>
+     * Tests the branch where str.length() > length, which should return
+     * the original string unchanged without truncation.
+     * </p>
+     */
+    @DisplayName("shouldReturnOriginalStringWhenPadRightLengthExceeds")
+    @Test
+    void shouldReturnOriginalStringWhenPadRightLengthExceeds() throws Exception {
+        // Arrange - string longer than target
+        String input = "1234567890";
+        int targetLength = 5;
+
+        // Act
+        String result = invokeMethod(mojo, "padRight", input, targetLength);
+
+        // Assert
+        assertEquals(input, result);
+        assertEquals(10, result.length());
+    }
+
+    /**
+     * Verifies that padRight correctly pads strings shorter than target length.
+     *
+     * <p>
+     * Tests the normal padding branch where str.length() < length.
+     * </p>
+     */
+    @DisplayName("shouldPadStringWhenShorterThanTargetLength")
+    @Test
+    void shouldPadStringWhenShorterThanTargetLength() throws Exception {
+        // Arrange
+        String input = "test";
+        int targetLength = 10;
+
+        // Act
+        String result = invokeMethod(mojo, "padRight", input, targetLength);
+
+        // Assert
+        assertEquals(10, result.length());
+        assertTrue(result.startsWith("test"));
+        assertEquals("test      ", result);
+    }
+
+    /**
+     * Verifies that printDebugInstructions logs suspend message when
+     * debugSuspend=true.
+     *
+     * <p>
+     * Tests the branch in printDebugInstructions that displays the JVM suspended
+     * warning message when debugSuspend is enabled.
+     * </p>
+     */
+    @DisplayName("shouldLogSuspendMessageWhenDebugSuspendIsTrue")
+    @Test
+    void shouldLogSuspendMessageWhenDebugSuspendIsTrue() throws Exception {
+        // Arrange
+        setField(mojo, "debugSuspend", true);
+        setField(mojo, "debugPort", 5005);
+
+        // Act
+        invokeMethod(mojo, "printDebugInstructions");
+
+        // Assert - verify suspend message was logged
+        verify(log).info(">>> JVM is SUSPENDED - waiting for debugger to attach...");
+    }
+
+    /**
+     * Verifies that printDebugInstructions does not log suspend message when
+     * debugSuspend=false.
+     *
+     * <p>
+     * Tests the branch in printDebugInstructions that skips the JVM suspended
+     * warning message when debugSuspend is disabled.
+     * </p>
+     */
+    @DisplayName("shouldNotLogSuspendMessageWhenDebugSuspendIsFalse")
+    @Test
+    void shouldNotLogSuspendMessageWhenDebugSuspendIsFalse() throws Exception {
+        // Arrange
+        setField(mojo, "debugSuspend", false);
+        setField(mojo, "debugPort", 5005);
+        org.mockito.Mockito.reset(log);
+
+        // Act
+        invokeMethod(mojo, "printDebugInstructions");
+
+        // Assert - verify suspend message was NOT logged
+        verify(log, org.mockito.Mockito.never()).info(">>> JVM is SUSPENDED - waiting for debugger to attach...");
+    }
+
+    /**
+     * Verifies that buildDebugServerConfiguration includes JDWP agent with null
+     * vmOptions.
+     *
+     * <p>
+     * Tests the branch where vmOptions is null, ensuring the JDWP agent
+     * is still properly added to the configuration.
+     * </p>
+     */
+    @DisplayName("shouldBuildDebugServerConfigWithNullVmOptions")
+    @Test
+    void shouldBuildDebugServerConfigWithNullVmOptions() throws Exception {
+        // Arrange
+        setField(mojo, "vmOptions", null);
+        setField(mojo, "debugPort", 5005);
+        setField(mojo, "debugSuspend", false);
+        setField(mojo, "debugHost", "*");
+
+        // Act
+        ServerConfiguration config = invokeMethod(mojo, "buildDebugServerConfiguration");
+
+        // Assert
+        List<String> resultVmOptions = config.getVmOptions();
+        assertTrue(resultVmOptions.stream().anyMatch(opt -> opt.contains("-agentlib:jdwp")));
+    }
+
     // ==================== Helper Methods ====================
 
     /**
@@ -278,6 +424,31 @@ class DebugMojoTest {
     }
 
     /**
+     * Invokes a method with parameters on the target object using reflection.
+     *
+     * @param <T>        the expected return type
+     * @param target     the object to invoke the method on
+     * @param methodName the name of the method to invoke
+     * @param args       the method arguments
+     * @return the method's return value
+     * @throws Exception if reflection or invocation fails
+     */
+    @SuppressWarnings("unchecked")
+    private <T> T invokeMethod(Object target, String methodName, Object... args) throws Exception {
+        Class<?>[] paramTypes = new Class<?>[args.length];
+        for (int i = 0; i < args.length; i++) {
+            paramTypes[i] = args[i].getClass();
+            // Handle primitive type wrappers
+            if (args[i] instanceof Integer) {
+                paramTypes[i] = int.class;
+            }
+        }
+        var method = findMethodWithParams(target.getClass(), methodName, paramTypes);
+        method.setAccessible(true);
+        return (T) method.invoke(target, args);
+    }
+
+    /**
      * Finds a no-argument method by name in the class hierarchy.
      *
      * @param clazz      the class to search
@@ -290,6 +461,28 @@ class DebugMojoTest {
         while (current != null) {
             try {
                 return current.getDeclaredMethod(methodName);
+            } catch (NoSuchMethodException e) {
+                current = current.getSuperclass();
+            }
+        }
+        throw new NoSuchMethodException(methodName + " not found in " + clazz.getName());
+    }
+
+    /**
+     * Finds a method with parameters by name in the class hierarchy.
+     *
+     * @param clazz      the class to search
+     * @param methodName the name of the method to find
+     * @param paramTypes the parameter types
+     * @return the Method object
+     * @throws NoSuchMethodException if the method is not found
+     */
+    private java.lang.reflect.Method findMethodWithParams(Class<?> clazz, String methodName, Class<?>... paramTypes)
+            throws NoSuchMethodException {
+        Class<?> current = clazz;
+        while (current != null) {
+            try {
+                return current.getDeclaredMethod(methodName, paramTypes);
             } catch (NoSuchMethodException e) {
                 current = current.getSuperclass();
             }

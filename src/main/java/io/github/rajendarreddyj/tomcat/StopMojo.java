@@ -95,9 +95,8 @@ public class StopMojo extends AbstractTomcatMojo {
      * </p>
      *
      * @param pid the process ID of the Tomcat process to stop
-     * @throws InterruptedException if the shutdown wait is interrupted
      */
-    private void stopProcess(long pid) throws InterruptedException {
+    private void stopProcess(long pid) {
         ProcessHandle.of(pid).ifPresentOrElse(
                 handle -> {
                     getLog().info("Stopping Tomcat process (PID: " + pid + ")");

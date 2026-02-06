@@ -240,7 +240,11 @@ public class TomcatDownloader {
                             if (Files.exists(binDir)) {
                                 try (var files = Files.list(binDir)) {
                                     files.filter(p -> p.toString().endsWith(".sh"))
-                                            .forEach(p -> p.toFile().setExecutable(true, false));
+                                            .forEach(p -> {
+                                                if (!p.toFile().setExecutable(true, false)) {
+                                                    log.warn("Could not set executable permission on: " + p);
+                                                }
+                                            });
                                 } catch (IOException e) {
                                     log.warn("Could not set executable permissions: " + e.getMessage());
                                 }

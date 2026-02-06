@@ -651,6 +651,95 @@ class AbstractTomcatMojoTest {
     }
 
     /**
+     * Verifies that buildJdwpAgentArg returns correct string with suspend=false.
+     *
+     * @throws Exception if the test fails
+     */
+    @Test
+    void buildJdwpAgentArgWithSuspendFalse() throws Exception {
+        setField(mojo, "debugPort", 5005);
+        setField(mojo, "debugHost", "*");
+        setField(mojo, "debugSuspend", false);
+
+        String result = mojo.buildJdwpAgentArg();
+
+        assertEquals("-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005", result);
+    }
+
+    /**
+     * Verifies that buildJdwpAgentArg returns correct string with suspend=true.
+     *
+     * @throws Exception if the test fails
+     */
+    @Test
+    void buildJdwpAgentArgWithSuspendTrue() throws Exception {
+        setField(mojo, "debugPort", 8000);
+        setField(mojo, "debugHost", "localhost");
+        setField(mojo, "debugSuspend", true);
+
+        String result = mojo.buildJdwpAgentArg();
+
+        assertEquals("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:8000", result);
+    }
+
+    /**
+     * Verifies that validateDebugPortAvailable passes when debug port is free.
+     *
+     * @throws Exception if the test fails
+     */
+    @Test
+    void validateDebugPortAvailablePassesForFreePort() throws Exception {
+        setField(mojo, "debugPort", 15005);
+
+        assertDoesNotThrow(() -> mojo.validateDebugPortAvailable());
+    }
+
+    /**
+     * Verifies that validateDebugPortAvailable throws when debug port is in use.
+     *
+     * @throws Exception if the test fails
+     */
+    @Test
+    void validateDebugPortAvailableThrowsForUsedPort() throws Exception {
+        // Bind to 0.0.0.0 since validateDebugPortAvailable checks that address
+        try (ServerSocket socket = new ServerSocket(0, 1, InetAddress.getByName("0.0.0.0"))) {
+            int usedPort = socket.getLocalPort();
+            setField(mojo, "debugPort", usedPort);
+
+            assertThrows(MojoExecutionException.class, () -> mojo.validateDebugPortAvailable());
+        }
+    }
+
+    /**
+     * Verifies that detectInstalledVersion returns null when server.number property
+     * is missing from ServerInfo.properties (but file exists).
+     *
+     * @throws Exception if the test fails
+     */
+    @Test
+    void detectInstalledVersionReturnsNullWhenPropertyMissing() throws Exception {
+        Path tomcat = tempDir.resolve("tomcat-no-server-number");
+        Files.createDirectories(tomcat.resolve("lib"));
+
+        // Create a JAR with ServerInfo.properties but no server.number property
+        Path catalinaJar = tomcat.resolve("lib").resolve("catalina.jar");
+        try (JarOutputStream jos = new JarOutputStream(new FileOutputStream(catalinaJar.toFile()))) {
+            JarEntry entry = new JarEntry("org/apache/catalina/util/ServerInfo.properties");
+            jos.putNextEntry(entry);
+
+            Properties props = new Properties();
+            props.setProperty("server.info", "Apache Tomcat/10.1.52");
+            // Note: server.number is intentionally NOT set
+            props.store(jos, null);
+            jos.closeEntry();
+        }
+
+        String version = mojo.detectInstalledVersion(tomcat);
+
+        assertNull(version);
+    }
+
+    /**
      * Concrete implementation of AbstractTomcatMojo for testing.
      *
      * <p>

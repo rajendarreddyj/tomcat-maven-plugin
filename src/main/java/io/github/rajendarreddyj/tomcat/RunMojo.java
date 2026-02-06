@@ -88,9 +88,8 @@ public class RunMojo extends AbstractTomcatMojo {
             deployer.deploy(deployConfig);
 
             // Start hot deploy watcher if enabled
-            HotDeployWatcher watcher = new HotDeployWatcher(deployConfig, deployer, getLog());
 
-            try {
+            try (HotDeployWatcher watcher = new HotDeployWatcher(deployConfig, deployer, getLog())) {
                 watcher.start();
 
                 // Start Tomcat
@@ -100,8 +99,6 @@ public class RunMojo extends AbstractTomcatMojo {
 
                 launcher.run();
 
-            } finally {
-                watcher.close();
             }
 
         } catch (Exception e) {

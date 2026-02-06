@@ -261,4 +261,81 @@ class TomcatDownloaderTest {
             zos.closeEntry();
         }
     }
+
+    /**
+     * Creates a malicious test ZIP file with path traversal entries (zip slip).
+     *
+     * @param zipFile the path to create the ZIP file
+     * @throws IOException if file creation fails
+     */
+    private void createMaliciousZip(Path zipFile) throws IOException {
+        try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(zipFile))) {
+            // Add a malicious entry with path traversal
+            ZipEntry maliciousEntry = new ZipEntry("apache-tomcat-10.1.36/../../../evil.txt");
+            zos.putNextEntry(maliciousEntry);
+            zos.write("malicious content".getBytes());
+            zos.closeEntry();
+        }
+    }
+
+    /**
+     * Verifies that download rejects versions that don't match supported Tomcat
+     * versions.
+     */
+    @Test
+    void downloadRejectsNonNumericVersion() {
+        assertThrows(IllegalArgumentException.class,
+                () -> downloader.download("abc.def.ghi", tempDir, log));
+    }
+
+    /**
+     * Verifies that download handles Tomcat 10.0.x versions (explicitly rejected).
+     */
+    @Test
+    void downloadRejectsTomcat100Version() {
+        assertThrows(IllegalArgumentException.class,
+                () -> downloader.download("10.0.27", tempDir, log));
+    }
+
+    /**
+     * Verifies that valid Tomcat 11.x cached installation is used.
+     *
+     * @throws IOException if file operations fail
+     */
+    @Test
+    void downloadUsesCachedTomcat11Installation() throws IOException {
+        String version = "11.0.5";
+        Path extractedDir = tempDir.resolve(version).resolve("apache-tomcat-" + version);
+        Files.createDirectories(extractedDir.resolve("bin"));
+        Files.createDirectories(extractedDir.resolve("lib"));
+        Files.writeString(extractedDir.resolve("bin").resolve("catalina.sh"), "#!/bin/bash");
+        Files.writeString(extractedDir.resolve("lib").resolve("catalina.jar"), "mock jar");
+
+        Path result = downloader.download(version, tempDir, log);
+
+        assertEquals(extractedDir, result);
+        verify(log).info(contains("cached"));
+    }
+
+    /**
+     * Verifies that download validates the cached directory properly.
+     *
+     * @throws IOException if file operations fail
+     */
+    @Test
+    void downloadValidatesCachedDirectoryHasBinDir() throws IOException {
+        String version = "10.1.36";
+        Path extractedDir = tempDir.resolve(version).resolve("apache-tomcat-" + version);
+        // Only create lib directory, missing bin
+        Files.createDirectories(extractedDir.resolve("lib"));
+        Files.writeString(extractedDir.resolve("lib").resolve("catalina.jar"), "mock");
+
+        try {
+            downloader.download(version, tempDir, log);
+        } catch (IOException e) {
+            // Expected - invalid cache without bin directory
+        }
+
+        verify(log, never()).info(contains("Using cached"));
+    }
 }

@@ -334,4 +334,104 @@ class HotDeployWatcherTest {
                 .autopublishInactivityLimit(inactivityLimit)
                 .build();
     }
+
+    /**
+     * Verifies that file modification events trigger redeploy after inactivity.
+     *
+     * @throws Exception if the test fails
+     */
+    @Test
+    void fileModificationTriggersRedeploy() throws Exception {
+        DeployableConfiguration config = createConfig(true, 1);
+        watcher = new HotDeployWatcher(config, deployer, log);
+        watcher.start();
+
+        // Create and then modify a file
+        Path testFile = sourceDir.resolve("test.txt");
+        Files.writeString(testFile, "initial content");
+        TimeUnit.MILLISECONDS.sleep(500);
+
+        // Modify the file
+        Files.writeString(testFile, "modified content");
+
+        // Wait for inactivity period plus buffer
+        TimeUnit.SECONDS.sleep(3);
+
+        verify(deployer, timeout(5000).atLeastOnce()).redeploy(any());
+    }
+
+    /**
+     * Verifies that file deletion events trigger redeploy after inactivity.
+     *
+     * @throws Exception if the test fails
+     */
+    @Test
+    void fileDeletionTriggersRedeploy() throws Exception {
+        // Create a file first
+        Path testFile = sourceDir.resolve("to-delete.txt");
+        Files.writeString(testFile, "to be deleted");
+
+        DeployableConfiguration config = createConfig(true, 1);
+        watcher = new HotDeployWatcher(config, deployer, log);
+        watcher.start();
+
+        // Delete the file
+        TimeUnit.MILLISECONDS.sleep(500);
+        Files.delete(testFile);
+
+        // Wait for inactivity period plus buffer
+        TimeUnit.SECONDS.sleep(3);
+
+        verify(deployer, timeout(5000).atLeastOnce()).redeploy(any());
+    }
+
+    /**
+     * Verifies that watcher handles IOException during redeploy gracefully.
+     *
+     * @throws Exception if the test fails
+     */
+    @Test
+    void watcherHandlesRedeployException() throws Exception {
+        // Configure deployer to throw exception
+        org.mockito.Mockito.doThrow(new IOException("Deploy failed"))
+                .when(deployer).redeploy(any());
+
+        DeployableConfiguration config = createConfig(true, 1);
+        watcher = new HotDeployWatcher(config, deployer, log);
+        watcher.start();
+
+        // Trigger a change
+        Files.writeString(sourceDir.resolve("test.txt"), "content");
+
+        // Wait for sync attempt
+        TimeUnit.SECONDS.sleep(3);
+
+        // Should not throw - error is logged but handled
+        verify(log, timeout(5000).atLeastOnce()).error(contains("Auto-publish failed"));
+    }
+
+    /**
+     * Verifies that deeply nested directory changes are detected.
+     *
+     * @throws Exception if the test fails
+     */
+    @Test
+    void watcherDetectsNestedDirectoryChanges() throws Exception {
+        // Create nested structure
+        Path nestedDir = sourceDir.resolve("level1").resolve("level2").resolve("level3");
+        Files.createDirectories(nestedDir);
+
+        DeployableConfiguration config = createConfig(true, 1);
+        watcher = new HotDeployWatcher(config, deployer, log);
+        watcher.start();
+
+        // Create a file in the nested directory
+        TimeUnit.MILLISECONDS.sleep(500);
+        Files.writeString(nestedDir.resolve("nested.txt"), "nested content");
+
+        // Wait for sync
+        TimeUnit.SECONDS.sleep(3);
+
+        verify(deployer, timeout(5000).atLeastOnce()).redeploy(any());
+    }
 }
