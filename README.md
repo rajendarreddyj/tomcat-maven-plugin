@@ -102,7 +102,7 @@ mvn tomcat:deploy
         <!-- Tomcat Version & Location -->
         <tomcatVersion>10.1.52</tomcatVersion>
         <catalinaHome>/path/to/tomcat</catalinaHome>
-        <!-- catalinaBase: Optional. If omitted and httpPort!=8080, 
+        <!-- catalinaBase: Optional. If omitted and httpPort!=8080,
              auto-generates at {tomcatCacheDir}/base-{version}-{port} -->
         <catalinaBase>/path/to/instance</catalinaBase>
         <!-- tomcatCacheDir: Used for Tomcat downloads AND generated CATALINA_BASE -->
@@ -367,6 +367,9 @@ mvn verify         # Unit + Integration tests
 
 ## Community
 
+- [Documentation](https://rajendarreddyj.github.io/tomcat-maven-plugin/) - GitHub Pages site
+- [Wiki](https://github.com/rajendarreddyj/tomcat-maven-plugin/wiki) - User guide and tutorials
+- [API Docs](https://rajendarreddyj.github.io/tomcat-maven-plugin/apidocs/) - Javadoc reference
 - Code of Conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 - Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
 - Security Policy: [SECURITY.md](SECURITY.md)
