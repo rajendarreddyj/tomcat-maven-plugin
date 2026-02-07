@@ -2,6 +2,103 @@
 
 This guide explains how to publish the `tomcat-maven-plugin` to Maven Central via Sonatype OSSRH.
 
+## GitHub Flow
+
+This project follows [GitHub Flow](https://docs.github.com/en/get-started/quickstart/github-flow), a lightweight branch-based workflow:
+
+### Branching Model
+
+- **`main`** - The single long-lived branch, always in a deployable state
+- **Feature branches** - Short-lived branches for all changes (e.g., `feature/add-hot-deploy`, `fix/port-conflict`)
+
+### Development Workflow
+
+1. **Create a feature branch** from `main`:
+   ```bash
+   git checkout main
+   git pull origin main
+   git checkout -b feature/your-feature-name
+   ```
+
+2. **Make changes** and commit frequently:
+   ```bash
+   git add .
+   git commit -m "Add feature description"
+   ```
+
+3. **Push and create a Pull Request**:
+   ```bash
+   git push -u origin feature/your-feature-name
+   ```
+   - Open a PR targeting `main`
+   - CI workflow runs automatically on PRs
+
+4. **Merge after review** - PR merges into `main` after approval and CI passes
+
+5. **Release from `main`** - Create a GitHub Release to publish to Maven Central
+
+### CI/CD Workflows
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `ci.yml` | Push to `main`, PRs to `main` | Build, test, code quality checks |
+| `publish.yml` | GitHub Release publish | Deploy to Maven Central |
+
+## Automated Publishing Process
+
+The entire publishing process is automated via GitHub Actions. Once configured, publishing requires only creating a GitHub Release.
+
+### What Gets Automated
+
+When you publish a GitHub Release, the `publish.yml` workflow automatically:
+
+1. **Generates release notes** from commits since the last tag
+2. **Updates the GitHub Release** with the generated changelog
+3. **Sets the version** from the release tag (removes `v` prefix)
+4. **Builds and verifies** the project
+5. **Signs artifacts** with GPG
+6. **Deploys to Maven Central**
+7. **Uploads artifacts** to the GitHub Release
+
+### Automatic Release Notes
+
+The workflow automatically generates release notes containing:
+- All commits since the previous tag
+- Link to full changelog comparison
+
+**Example output:**
+```markdown
+## What's Changed
+
+- Add hot deploy feature (a1b2c3d)
+- Fix port conflict detection (e4f5g6h)
+- Update dependencies (i7j8k9l)
+
+**Full Changelog**: https://github.com/rajendarreddyj/tomcat-maven-plugin/compare/v0.9.0...v1.0.0
+```
+
+### Quick Release Steps
+
+1. **Ensure `main` is ready** - all features merged, tests passing
+2. **Create GitHub Release**:
+   ```bash
+   # Option A: Using Git CLI
+   git tag v1.0.0
+   git push origin v1.0.0
+   # Then create release from tag in GitHub UI
+
+   # Option B: Using GitHub CLI
+   gh release create v1.0.0 --title "Release 1.0.0" --generate-notes
+   ```
+3. **Monitor the workflow** - Actions tab shows progress
+4. **Verify on Maven Central** - available within ~10-15 minutes
+
+### Version Handling
+
+- **Tag format**: `v1.0.0` (with `v` prefix)
+- **Maven version**: `1.0.0` (without `v` prefix, extracted automatically)
+- **No manual `pom.xml` changes needed** - version is set from tag during build
+
 ## Prerequisites
 
 ### 1. Sonatype OSSRH Account
@@ -17,7 +114,18 @@ Generate a GPG key for signing artifacts:
 ```bash
 # Generate a new GPG key
 gpg --full-generate-key
+```
 
+When prompted, select:
+1. **Key type**: `1` (RSA and RSA - default and recommended)
+2. **Key size**: `4096` (stronger security, required for Maven Central)
+3. **Expiration**: `0` for no expiration, or specify duration (e.g., `2y` for 2 years)
+4. **Real name**: Your name (e.g., `RajendarReddy Jagapathi`)
+5. **Email**: Your email (e.g., `rajendarreddyj@gmail.com`)
+6. **Comment**: Optional, can leave blank
+7. **Passphrase**: Choose a strong passphrase (save this for `GPG_PASSPHRASE` secret)
+
+```bash
 # List keys to get the key ID
 gpg --list-secret-keys --keyid-format=long
 
@@ -58,30 +166,32 @@ Configure these secrets in your GitHub repository (Settings → Secrets and vari
 
 ### Method 1: GitHub Release (Recommended)
 
-1. **Update version in `pom.xml`** (remove `-SNAPSHOT`):
-   ```xml
-   <version>1.0.0</version>
-   ```
+The simplest and recommended approach - just create a release:
 
-2. **Commit and push** the version change:
-   ```bash
-   git add pom.xml
-   git commit -m "Release version 1.0.0"
-   git push origin main
-   ```
-
-3. **Create a GitHub Release**:
+1. **Create a GitHub Release**:
    - Go to Releases → Draft a new release
-   - Create a new tag: `v1.0.0`
+   - Create a new tag: `v1.0.0` (from `main` branch)
    - Title: `Release 1.0.0`
-   - Add release notes
+   - Description is optional (auto-generated from commits)
    - Click "Publish release"
 
-4. The `publish.yml` workflow will automatically:
-   - Build the project
-   - Sign artifacts with GPG
-   - Deploy to Maven Central
-   - Upload release artifacts
+2. **That's it!** The workflow automatically:
+   - Extracts version `1.0.0` from tag `v1.0.0`
+   - Generates release notes from commits
+   - Builds, signs, and deploys to Maven Central
+   - Uploads JAR artifacts to the release
+
+**Using GitHub CLI:**
+```bash
+gh release create v1.0.0 --title "Release 1.0.0" --generate-notes
+```
+
+**Using Git + GitHub UI:**
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+# Then go to GitHub → Releases → create release from tag
+```
 
 ### Method 2: Manual Workflow Dispatch
 
@@ -110,12 +220,15 @@ mvn deploy -Prelease -DskipTests
 
 Before publishing a release:
 
+- [ ] All feature PRs merged to `main`
 - [ ] All tests pass: `mvn clean verify`
 - [ ] Coverage thresholds met (90% line, 85% branch)
-- [ ] Version number updated (no `-SNAPSHOT`)
-- [ ] `README.md` updated with new version
-- [ ] CHANGELOG updated with release notes
-- [ ] All breaking changes documented
+- [ ] `README.md` updated with new version (if needed)
+- [ ] All breaking changes documented in commit messages
+
+After creating the release:
+- [ ] Verify workflow completed successfully in Actions tab
+- [ ] Verify artifact on Maven Central (~10-15 minutes)
 
 ## Version Numbering
 
@@ -131,19 +244,11 @@ After successful publication:
 
 1. **Verify on Maven Central**:
    - Search for the artifact at [search.maven.org](https://search.maven.org/search?q=g:io.github.rajendarreddyj%20AND%20a:tomcat-maven-plugin)
-   - Note: It may take up to 4 hours to appear in search
+   - Note: It may take up to 4 hours to appear in search (usually ~10-15 minutes)
 
-2. **Update to next SNAPSHOT**:
-   ```xml
-   <version>1.0.1-SNAPSHOT</version>
-   ```
-
-3. **Push the snapshot version**:
-   ```bash
-   git add pom.xml
-   git commit -m "Prepare for next development iteration"
-   git push origin main
-   ```
+2. **Verify GitHub Release**:
+   - Check that release notes were auto-generated
+   - Check that JAR artifacts were uploaded
 
 ## Troubleshooting
 
