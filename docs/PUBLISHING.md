@@ -43,6 +43,60 @@ This project follows [GitHub Flow](https://docs.github.com/en/get-started/quicks
 |----------|---------|---------|
 | `ci.yml` | Push to `main`, PRs to `main` | Build, test, code quality checks |
 | `publish.yml` | GitHub Release publish | Deploy to Maven Central |
+| `gh-pages.yml` | Push to `main` (docs changes) | Deploy documentation site || `wiki-sync.yml` | Push to `main` (wiki changes) | Sync wiki to GitHub Wiki |
+## Documentation
+
+### GitHub Pages
+
+The project documentation is hosted at: **https://rajendarreddyj.github.io/tomcat-maven-plugin/**
+
+The `gh-pages.yml` workflow automatically deploys:
+- Landing page with quick start guide
+- Javadoc API documentation
+- Plugin documentation
+
+**Setup GitHub Pages:**
+1. Go to Settings → Pages
+2. Source: "GitHub Actions"
+3. The workflow deploys automatically on pushes to `main`
+
+### GitHub Wiki
+
+User guide and tutorials are available in the [Wiki](https://github.com/rajendarreddyj/tomcat-maven-plugin/wiki):
+
+| Page | Description |
+|------|-------------|
+| [Getting Started](https://github.com/rajendarreddyj/tomcat-maven-plugin/wiki/Getting-Started) | Installation and first steps |
+| [Configuration](https://github.com/rajendarreddyj/tomcat-maven-plugin/wiki/Configuration) | All configuration parameters |
+| [Goals Reference](https://github.com/rajendarreddyj/tomcat-maven-plugin/wiki/Goals-Reference) | Detailed goal documentation |
+| [Debugging](https://github.com/rajendarreddyj/tomcat-maven-plugin/wiki/Debugging) | Debug your application |
+| [Hot Deployment](https://github.com/rajendarreddyj/tomcat-maven-plugin/wiki/Hot-Deployment) | Auto-publish on file changes |
+| [Troubleshooting](https://github.com/rajendarreddyj/tomcat-maven-plugin/wiki/Troubleshooting) | Common issues and solutions |
+| [FAQ](https://github.com/rajendarreddyj/tomcat-maven-plugin/wiki/FAQ) | Frequently asked questions |
+
+**Updating the Wiki:**
+
+Wiki content is maintained in the `wiki/` directory and **automatically synced** to GitHub Wiki.
+
+1. Edit files in `wiki/` directory
+2. Commit and push to `main` branch
+3. The `wiki-sync.yml` workflow automatically syncs changes to GitHub Wiki
+
+**Manual sync** (if needed):
+```bash
+git clone https://github.com/rajendarreddyj/tomcat-maven-plugin.wiki.git
+cp -r wiki/* tomcat-maven-plugin.wiki/
+cd tomcat-maven-plugin.wiki
+git add .
+git commit -m "Update wiki"
+git push
+```
+
+Or edit directly in GitHub Wiki web interface (changes won't sync back to main repo).
+
+**Prerequisites:**
+- Wiki must be initialized first (create any page via GitHub Wiki UI)
+- The workflow uses `GITHUB_TOKEN` which has wiki write permissions by default
 
 ## Automated Publishing Process
 
