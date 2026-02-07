@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Wiki Documentation
+    url: https://github.com/rajendarreddyj/tomcat-maven-plugin/wiki
+    about: Check the wiki for usage guides and documentation
+  - name: FAQ
+    url: https://github.com/rajendarreddyj/tomcat-maven-plugin/wiki/FAQ
+    about: Frequently asked questions
+  - name: Discussions
+    url: https://github.com/rajendarreddyj/tomcat-maven-plugin/discussions
+    about: Ask questions and discuss ideas with the community

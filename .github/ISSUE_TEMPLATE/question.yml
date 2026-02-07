@@ -1,0 +1,44 @@
+name: Question
+description: Ask a question about using the plugin
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question? We're happy to help!
+
+        **Note:** For general usage questions, also check the [Wiki](https://github.com/rajendarreddyj/tomcat-maven-plugin/wiki) and [FAQ](https://github.com/rajendarreddyj/tomcat-maven-plugin/wiki/FAQ).
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What would you like to know?
+      placeholder: How do I...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Provide any relevant context or what you've already tried
+      placeholder: I've tried... but...
+
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Current Configuration (if relevant)
+      description: Your plugin configuration
+      render: xml
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have read the [Wiki documentation](https://github.com/rajendarreddyj/tomcat-maven-plugin/wiki)
+          required: true
+        - label: I have searched existing issues for similar questions
+          required: true
