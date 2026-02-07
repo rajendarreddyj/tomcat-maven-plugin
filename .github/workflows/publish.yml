@@ -1,72 +1,128 @@
 name: Publish to Maven Central
 
 on:
-  release:
-    types: [ published ]
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to publish (leave empty to use pom.xml version)'
-        required: false
-        type: string
+    release:
+        types: [published]
+    workflow_dispatch:
+        inputs:
+            version:
+                description: "Version to publish (leave empty to use pom.xml version)"
+                required: false
+                type: string
 
 jobs:
-  publish:
-    name: Publish to Maven Central
-    runs-on: ubuntu-latest
-    environment: maven-central
+    publish:
+        name: Publish to Maven Central
+        runs-on: ubuntu-latest
+        environment: maven-central
+        permissions:
+            contents: write
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
+              with:
+                  fetch-depth: 0 # Fetch all history for release notes generation
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v5
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: maven
-          server-id: central
-          server-username: MAVEN_USERNAME
-          server-password: MAVEN_PASSWORD
-          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
-          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+            - name: Generate release notes from commits
+              if: github.event_name == 'release'
+              id: release_notes
+              run: |
+                  # Get the previous tag
+                  CURRENT_TAG=${GITHUB_REF#refs/tags/}
+                  PREVIOUS_TAG=$(git describe --tags --abbrev=0 $CURRENT_TAG^ 2>/dev/null || echo "")
 
-      - name: Set version from release tag
-        if: github.event_name == 'release'
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          echo "Setting version to $VERSION"
-          mvn versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false
+                  echo "Current tag: $CURRENT_TAG"
+                  echo "Previous tag: $PREVIOUS_TAG"
 
-      - name: Set version from input
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.version != ''
-        run: |
-          VERSION=${{ github.event.inputs.version }}
-          echo "Setting version to $VERSION"
-          mvn versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false
+                  # Generate release notes
+                  if [ -z "$PREVIOUS_TAG" ]; then
+                    echo "No previous tag found, getting all commits"
+                    COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges)
+                  else
+                    echo "Getting commits since $PREVIOUS_TAG"
+                    COMMITS=$(git log ${PREVIOUS_TAG}..${CURRENT_TAG} --pretty=format:"- %s (%h)" --no-merges)
+                  fi
 
-      - name: Build and verify
-        run: mvn -B clean verify -DskipTests
+                  # Create release notes file
+                  {
+                    echo "## What's Changed"
+                    echo ""
+                    echo "$COMMITS"
+                    echo ""
+                    echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREVIOUS_TAG:-$(git rev-list --max-parents=0 HEAD | head -1)}...${CURRENT_TAG}"
+                  } > release_notes.md
 
-      - name: Publish to Maven Central
-        run: mvn -B deploy -Prelease -DskipTests
-        env:
-          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+                  cat release_notes.md
 
-      - name: Create GitHub release artifacts
-        if: github.event_name == 'release'
-        run: |
-          mkdir -p release-artifacts
-          cp target/*.jar release-artifacts/
-          cp target/*.pom release-artifacts/ 2>/dev/null || true
+            - name: Update release with commit notes
+              if: github.event_name == 'release'
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  # Get existing release body
+                  EXISTING_BODY=$(gh release view ${{ github.event.release.tag_name }} --json body -q '.body')
 
-      - name: Upload release artifacts
-        if: github.event_name == 'release'
-        uses: actions/upload-artifact@v6
-        with:
-          name: release-artifacts
-          path: release-artifacts/
-          retention-days: 90
+                  # Append generated notes if release body is empty or minimal
+                  if [ -z "$EXISTING_BODY" ] || [ "$EXISTING_BODY" = "null" ]; then
+                    gh release edit ${{ github.event.release.tag_name }} --notes-file release_notes.md
+                  else
+                    # Append commit log to existing notes
+                    {
+                      echo "$EXISTING_BODY"
+                      echo ""
+                      cat release_notes.md
+                    } > combined_notes.md
+                    gh release edit ${{ github.event.release.tag_name }} --notes-file combined_notes.md
+                  fi
+
+            - name: Set up JDK 21
+              uses: actions/setup-java@v5
+              with:
+                  java-version: "21"
+                  distribution: "temurin"
+                  cache: maven
+                  server-id: central
+                  server-username: MAVEN_USERNAME
+                  server-password: MAVEN_PASSWORD
+                  gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+                  gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+            - name: Set version from release tag
+              if: github.event_name == 'release'
+              run: |
+                  VERSION=${GITHUB_REF#refs/tags/v}
+                  echo "Setting version to $VERSION"
+                  mvn versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false
+
+            - name: Set version from input
+              if: github.event_name == 'workflow_dispatch' && github.event.inputs.version != ''
+              run: |
+                  VERSION=${{ github.event.inputs.version }}
+                  echo "Setting version to $VERSION"
+                  mvn versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false
+
+            - name: Build and verify
+              run: mvn -B clean verify -DskipTests
+
+            - name: Publish to Maven Central
+              run: mvn -B deploy -Prelease -DskipTests
+              env:
+                  MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+                  MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+                  MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+            - name: Create GitHub release artifacts
+              if: github.event_name == 'release'
+              run: |
+                  mkdir -p release-artifacts
+                  cp target/*.jar release-artifacts/
+                  cp target/*.pom release-artifacts/ 2>/dev/null || true
+
+            - name: Upload release artifacts
+              if: github.event_name == 'release'
+              uses: actions/upload-artifact@v6
+              with:
+                  name: release-artifacts
+                  path: release-artifacts/
+                  retention-days: 90

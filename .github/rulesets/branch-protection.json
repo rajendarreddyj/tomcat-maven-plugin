@@ -1,0 +1,70 @@
+{
+    "$schema": "https://json.schemastore.org/github-ruleset.json",
+    "name": "Branch Protection - Main and Develop",
+    "target": "branch",
+    "enforcement": "active",
+    "conditions": {
+        "ref_name": {
+            "include": [
+                "refs/heads/main",
+                "refs/heads/develop"
+            ],
+            "exclude": []
+        }
+    },
+    "rules": [
+        {
+            "type": "creation"
+        },
+        {
+            "type": "deletion"
+        },
+        {
+            "type": "non_fast_forward"
+        },
+        {
+            "type": "pull_request",
+            "parameters": {
+                "required_approving_review_count": 1,
+                "dismiss_stale_reviews_on_push": true,
+                "require_code_owner_review": false,
+                "require_last_push_approval": true,
+                "required_review_thread_resolution": true
+            }
+        },
+        {
+            "type": "required_status_checks",
+            "parameters": {
+                "strict_required_status_checks_policy": true,
+                "required_status_checks": [
+                    {
+                        "context": "Build and Test (ubuntu-latest, 21)",
+                        "integration_id": null
+                    },
+                    {
+                        "context": "Build and Test (windows-latest, 21)",
+                        "integration_id": null
+                    },
+                    {
+                        "context": "Build and Test (macos-latest, 21)",
+                        "integration_id": null
+                    },
+                    {
+                        "context": "Code Quality",
+                        "integration_id": null
+                    }
+                ]
+            }
+        },
+        {
+            "type": "required_linear_history"
+        }
+    ],
+    "bypass_actors": [
+        {
+            "actor_id": 5,
+            "actor_type": "RepositoryRole",
+            "bypass_mode": "always"
+        }
+    ]
+}
