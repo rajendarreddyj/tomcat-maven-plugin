@@ -43,7 +43,10 @@ This project follows [GitHub Flow](https://docs.github.com/en/get-started/quicks
 |----------|---------|---------|
 | `ci.yml` | Push to `main`, PRs to `main` | Build, test, code quality checks |
 | `publish.yml` | GitHub Release publish | Deploy to Maven Central |
-| `gh-pages.yml` | Push to `main` (docs changes) | Deploy documentation site || `wiki-sync.yml` | Push to `main` (wiki changes) | Sync wiki to GitHub Wiki |
+| `gh-pages.yml` | Push to `main` (docs changes) | Deploy documentation site |
+| `wiki-sync.yml` | Push to `main` (wiki changes) | Sync wiki to GitHub Wiki |
+| `codeql.yml` | Push/PR to `main`, weekly | Security and code quality analysis |
+
 ## Documentation
 
 ### GitHub Pages
